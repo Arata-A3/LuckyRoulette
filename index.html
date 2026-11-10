@@ -110,7 +110,7 @@ main { display: flex; gap: 16px; flex: 1; min-height: 0; }
 @keyframes spinRing { to { transform: rotate(360deg); } }
 canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; }
 .pointer {
-    position: absolute; left: 50%; top: -14px; transform: translateX(-50%);
+    position: absolute; left: 50%; top: -14px; transform: translateX(-50%); transform-origin: 50% 0;
     width: 0; height: 0; z-index: 2;
     border-left: 16px solid transparent; border-right: 16px solid transparent;
     border-top: 30px solid var(--text);
@@ -236,9 +236,19 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
 
 .history { list-style: none; margin: 0; padding: 0; }
 .history li {
-    display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 8px 4px; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; padding: 8px 4px; border-bottom: 1px solid var(--line);
 }
 .history .no { font-family: ui-monospace, Consolas, monospace; color: var(--muted); grid-row: span 2; align-self: center; }
+.history .verify-btn { grid-column: 3; grid-row: 1 / span 2; align-self: center; padding: 6px 10px; font-size: .8rem; }
+.history .verify { grid-column: 1 / -1; font-size: .8rem; line-height: 1.5; margin-top: 4px; padding: 8px; border-radius: 8px; background: var(--panel-2); }
+.history .verify.ok b { color: #2fa866; }
+.history .verify.ng b { color: var(--danger); }
+.history .verify .cands { color: var(--muted); overflow-wrap: anywhere; }
+.seg-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg-btns button { flex: 1; min-width: 90px; border: 2px solid var(--line); border-radius: 10px; padding: 8px; background: var(--panel-2); }
+.seg-btns button[aria-pressed="true"] { border-color: var(--accent); font-weight: 700; }
+.seg-btns small { display: block; color: var(--muted); font-size: .75rem; font-weight: 400; }
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 .history .what { font-weight: 600; overflow-wrap: anywhere; }
 .history .what.win { color: #e0457b; }
 .history .meta { font-family: ui-monospace, Consolas, monospace; font-size: .75rem; color: var(--muted); }
@@ -284,7 +294,7 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
         <section class="stage">
             <div class="wheel-wrap" id="wheelWrap">
                 <canvas id="wheel"></canvas>
-                <div class="pointer"></div>
+                <div class="pointer" id="pointer"></div>
                 <button class="hub" id="spinBtn">回す</button>
             </div>
             <div class="seed" id="seedLine"></div>
@@ -317,13 +327,17 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
                     <button class="btn sub" id="clearHistory" type="button">履歴を消す</button>
                 </div>
                 <ul class="history" id="history"></ul>
-                <p class="hint">履歴を消しても、通し番号（#0001 など）は続きから数えます。</p>
+                <p class="hint">履歴を消しても、通し番号（#0001 など）は続きから数えます。「通算」はすべてのリストを合わせた回数で、リストを消して作り直しても戻りません。「検証」を押すと、記録したシード値と候補から結果を計算し直して、記録と同じになるか確かめます。</p>
             </div>
             <div class="tab-body" id="tab-settings" hidden>
                 <div class="field">
                     <span class="label">テーマ（自動の配色）</span>
                     <div class="themes" id="themes"></div>
                     <button class="btn sub" id="resetColors" type="button" style="margin-top:8px">項目の色をすべて自動に戻す</button>
+                </div>
+                <div class="field">
+                    <span class="label">回転の速さ</span>
+                    <div class="seg-btns" id="speeds"></div>
                 </div>
                 <div class="field">
                     <span class="label">出た項目を除外</span>
@@ -337,6 +351,7 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
         </aside>
     </main>
 </div>
+<canvas id="confetti" hidden></canvas>
 <dialog class="dialog" id="dialog">
     <form method="dialog" id="dialogForm">
         <p id="dialogMsg"></p>
@@ -356,7 +371,11 @@ const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
 const MAX_HISTORY = 500;
 const MAX_WEIGHT = 100;
-const SPIN_MS = 4800;          // 回転にかける時間
+const SPEEDS = {               // 回転にかける時間
+    fast:   { name: 'はやい', ms: 2500 },
+    normal: { name: 'ふつう', ms: 4800 },
+    slow:   { name: 'じっくり', ms: 8000 },
+};
 const GLOW_MS = 3000;          // 当たりのマスが色を変え続ける時間（その後は虹色で止める）
 const MAX_UNDO = 20;           // 削除を元に戻せる数（リストごと）
 const SEED_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字（I, O, 0, 1）を除く
@@ -395,15 +414,21 @@ function makeList(name, names = []) {
 function makeDefaultState() {
     const lunch = makeList('お昼ごはん', ['ラーメン', 'カレー', 'パスタ', '定食', 'ハンバーガー', 'お寿司']);
     lunch.items[5].win = true;
-    return { saveVersion: SAVE_VERSION, theme: 'vivid', currentListId: lunch.id, lists: [lunch] };
+    return {
+        saveVersion: SAVE_VERSION, theme: 'vivid', speed: 'normal', currentListId: lunch.id, lists: [lunch],
+        totalSpins: 0,   // すべてのリストを合わせた通し番号（リストを消しても戻らない）
+        snapshots: {},   // 検証用: 抽選したときの候補（名前と出やすさ）。履歴から key で参照する
+    };
 }
 
 // ===== セーブ =====
 function saveState() {
     if (resetting) return;
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+    pruneSnapshots();
+    try { const raw = JSON.stringify(state); localStorage.setItem(SAVE_KEY, raw); lastRaw = raw; }
     catch (err) { console.error(err); showNotice('保存できませんでした'); }
 }
+let lastRaw = null;   // このタブが最後に保存・読み込みした内容（ほかのタブが書き換えたかの判定に使う）
 function readRaw() {
     try { return localStorage.getItem(SAVE_KEY); } catch (err) { console.error(err); return null; }
 }
@@ -413,12 +438,32 @@ function parseSaved(raw) {
     if (!p || typeof p !== 'object' || !Array.isArray(p.lists)) throw new Error('invalid save');
     const lists = p.lists.map(sanitizeList).filter(Boolean);
     if (!lists.length) return null;
+    const snapshots = {};
+    if (p.snapshots && typeof p.snapshots === 'object') {
+        Object.entries(p.snapshots).forEach(([k, arr]) => {
+            if (!Array.isArray(arr)) return;
+            const ok = arr.filter(x => Array.isArray(x) && typeof x[0] === 'string' && Number.isFinite(x[1]))
+                .map(x => [x[0].slice(0, 40), clampWeight(x[1])]);
+            if (ok.length === arr.length && ok.length) snapshots[k] = ok;
+        });
+    }
+    const maxG = Math.max(0, ...lists.flatMap(l => l.history.map(h => h.g || 0)));
     return {
         saveVersion: SAVE_VERSION,
         theme: THEMES[p.theme] ? p.theme : 'vivid',
+        speed: SPEEDS[p.speed] ? p.speed : 'normal',
         currentListId: lists.some(l => l.id === p.currentListId) ? p.currentListId : lists[0].id,
         lists,
+        // 通算の番号がない古いデータは、各リストの回数の合計から始める
+        totalSpins: Math.max(Number.isFinite(p.totalSpins) && p.totalSpins >= 0 ? Math.floor(p.totalSpins) : lists.reduce((a, l) => a + l.spinCount, 0), maxG),
+        snapshots,
     };
+}
+// 履歴から参照されなくなった候補の記録を消す
+function pruneSnapshots() {
+    const used = new Set();
+    state.lists.forEach(l => l.history.forEach(h => { if (h.snap) used.add(h.snap); }));
+    Object.keys(state.snapshots).forEach(k => { if (!used.has(k)) delete state.snapshots[k]; });
 }
 function loadState() {
     state = makeDefaultState();
@@ -427,6 +472,7 @@ function loadState() {
     try {
         const st = parseSaved(raw);
         if (st) state = st;
+        lastRaw = raw;
     } catch (err) {
         try { localStorage.setItem(SAVE_KEY + '_corrupted', raw); } catch (e) { }
         setTimeout(() => showNotice('保存データが壊れていたため、初期状態で始めました'), 0);
@@ -435,12 +481,13 @@ function loadState() {
 // ほかのタブが保存した最新の内容を読み込む（表示中のリストはそのまま）
 function syncFromStorage() {
     const raw = readRaw();
-    if (!raw) return false;
+    if (!raw || raw === lastRaw) return false;   // ほかのタブが書き換えていなければ何もしない
     let st;
     try { st = parseSaved(raw); } catch (err) { return false; }
     if (!st) return false;
     const keep = state.currentListId;
     state = st;
+    lastRaw = raw;
     if (state.lists.some(l => l.id === keep)) state.currentListId = keep;
     return true;
 }
@@ -465,6 +512,8 @@ function sanitizeList(l) {
             itemId: typeof h.itemId === 'string' ? h.itemId : '',
             name: typeof h.name === 'string' ? h.name.slice(0, 40) : '?',
             win: !!h.win,
+            ...(Number.isFinite(h.g) && h.g >= 1 ? { g: Math.floor(h.g) } : {}),
+            ...(typeof h.snap === 'string' ? { snap: h.snap } : {}),
         }));
     return {
         id: typeof l.id === 'string' ? l.id : base.id,
@@ -533,7 +582,7 @@ function formatTime(ms) {
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 function formatNo(n) { return '#' + String(n).padStart(4, '0'); }
-function seedLine(h) { return `${formatNo(h.n)} · ${formatTime(h.time)} · ${h.seed}`; }
+function seedLine(h) { return `${formatNo(h.n)}${h.g ? ' · 通算' + h.g : ''} · ${formatTime(h.time)} · ${h.seed}`; }
 
 // ===== シードと乱数 =====
 function makeSeed() {
@@ -556,6 +605,17 @@ function mulberry32(a) {
         t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
+}
+// シード値と候補から結果を決める。同じシード値・同じ候補なら必ず同じ結果になる
+function pickFromSeed(seed, cands) {
+    const rng = mulberry32(hashStr(seed));
+    const segs = layout(cands);
+    let r = rng() * 360, index = segs.length - 1;
+    for (let i = 0; i < segs.length; i++) { if (r < segs[i].end) { index = i; break; } }
+    const seg = segs[index];
+    const target = seg.start + (seg.end - seg.start) * (0.12 + 0.76 * rng());   // マスの端ぎりぎりは避ける
+    const turns = 5 + Math.floor(rng() * 3);
+    return { index, seg, target, turns };
 }
 // 候補の並び（角度）: 重みに合わせて 0〜360° を割り当てる。0° が真上、時計回り
 function layout(cands) {
@@ -668,9 +728,10 @@ function drawWheel(now = performance.now()) {
 function loop(now) {
     rafId = 0;
     if (spin) {
-        const t = Math.min(1, (now - spin.start) / SPIN_MS);
+        const t = Math.min(1, (now - spin.start) / spin.ms);
         const eased = 1 - Math.pow(1 - t, 4);     // だんだん遅くなる
         rotation = spin.from + (spin.to - spin.from) * eased;
+        kickPointer(now);
         if (t >= 1) finishSpin();
     }
     drawWheel(now);
@@ -678,6 +739,21 @@ function loop(now) {
     if (spin || (winGlow && now - glowStart < GLOW_MS + 100)) rafId = requestAnimationFrame(loop);
 }
 function startLoop() { if (!rafId) rafId = requestAnimationFrame(loop); }
+
+// 針: マスの境目を通るたびに、少し跳ねる
+const POINTER_KICK_DEG = 24;
+const POINTER_KICK_MS = 130;
+function kickPointer(now) {
+    const p = (((-rotation) % 360) + 360) % 360;
+    const idx = spin.segs.findIndex(sg => p >= sg.start && p < sg.end);
+    if (idx !== spin.lastIdx) {
+        if (spin.lastIdx !== -1) spin.kick = now;
+        spin.lastIdx = idx;
+    }
+    const k = Math.max(0, 1 - (now - spin.kick) / POINTER_KICK_MS);
+    // 盤面は時計回り（上では右向き）に動くので、針の先は右へ押される
+    $('pointer').style.transform = k > 0 && !reduceMotion ? `translateX(-50%) rotate(${-POINTER_KICK_DEG * k}deg)` : '';
+}
 
 // ===== 抽選 =====
 function doSpin() {
@@ -689,14 +765,7 @@ function doSpin() {
     if (!cands.length) return;
 
     const seed = makeSeed();
-    const rng = mulberry32(hashStr(seed));
-    const segs = layout(cands);
-    // 重み付きで1つ選ぶ（シードから決まる）
-    let r = rng() * 360, seg = segs[segs.length - 1];
-    for (const s of segs) { if (r < s.end) { seg = s; break; } }
-    const span = seg.end - seg.start;
-    const target = seg.start + span * (0.12 + 0.76 * rng());   // マスの端ぎりぎりは避ける
-    const turns = 5 + Math.floor(rng() * 3);
+    const { seg, target, turns } = pickFromSeed(seed, cands);
 
     // 針（真上）が target を指す角度: rotation ≡ -target (mod 360)
     const from = ((rotation % 360) + 360) % 360;
@@ -705,7 +774,12 @@ function doSpin() {
 
     // 回し始めた時点で履歴に記録する（途中で再読み込みしても、やり直しにならない）
     list.spinCount += 1;
-    const entry = { n: list.spinCount, time: Date.now(), seed, itemId: seg.item.id, name: seg.item.name, win: seg.item.win };
+    state.totalSpins += 1;
+    // 検証用に、このときの候補（名前と出やすさ）を記録する。同じ内容は 1 つにまとめる
+    const snap = cands.map(i => [i.name, i.weight]);
+    const snapKey = hashStr(JSON.stringify(snap)).toString(36) + '-' + snap.length;
+    state.snapshots[snapKey] = snap;
+    const entry = { n: list.spinCount, g: state.totalSpins, time: Date.now(), seed, itemId: seg.item.id, name: seg.item.name, win: seg.item.win, snap: snapKey };
     list.history.unshift(entry);
     if (list.history.length > MAX_HISTORY) list.history.length = MAX_HISTORY;
     if (list.excludeMode && !list.excluded.includes(seg.item.id)) list.excluded.push(seg.item.id);
@@ -719,7 +793,7 @@ function doSpin() {
     $('result').textContent = '';
     $('seedLine').textContent = seedLine(entry);
     // 除外モードでも回転中は今の並びのままにする
-    spin = { start: performance.now(), from, to, entry };
+    spin = { start: performance.now(), from, to, entry, ms: SPEEDS[state.speed].ms, segs: layout(cands), lastIdx: -1, kick: -Infinity };
     spinCands = cands;
     renderAll();
     startLoop();
@@ -729,9 +803,59 @@ function finishSpin() {
     rotation = to % 360;
     spin = null;
     spinCands = null;
+    $('pointer').style.transform = '';
     showResult(entry, true);
+    if (entry.win) burstConfetti();
     if (pendingSync) applySync();
     renderAll();
+}
+
+// ===== 紙吹雪（当たりのとき） =====
+const CONFETTI_MS = 2600;
+const CONFETTI_COLORS = ['#ff3b5c', '#ff9f1a', '#ffe14d', '#3ccf6e', '#2fb8ff', '#8a5cff', '#ff6fb5'];
+function burstConfetti() {
+    if (reduceMotion) return;
+    const cv = $('confetti');
+    const cx = cv.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = window.innerWidth, H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.hidden = false;
+    const wr = $('wheelWrap').getBoundingClientRect();
+    const ox = wr.left + wr.width / 2, oy = wr.top + wr.height / 2;
+    const parts = Array.from({ length: 140 }, () => {
+        const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1;   // 上向きに広がる
+        const v = 6 + Math.random() * 9;
+        return {
+            x: ox, y: oy, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+            w: 6 + Math.random() * 6, h: 4 + Math.random() * 4,
+            r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+            c: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        };
+    });
+    const t0 = performance.now();
+    let last = t0, done = false;
+    const stop = () => { if (done) return; done = true; cx.setTransform(1, 0, 0, 1, 0, 0); cx.clearRect(0, 0, cv.width, cv.height); cv.hidden = true; };
+    setTimeout(stop, CONFETTI_MS + 300);   // 裏に回って描画が止まっても、必ず消す
+    const step = (now) => {
+        if (done) return;
+        const dt = Math.min(2, (now - last) / 16.7);   // 60fps を 1 とした経過
+        last = now;
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx.clearRect(0, 0, W, H);
+        const fade = Math.min(1, Math.max(0, (CONFETTI_MS - (now - t0)) / 600));
+        cx.globalAlpha = fade;
+        parts.forEach(q => {
+            q.vy += 0.35 * dt; q.vx *= Math.pow(0.99, dt); q.vy *= Math.pow(0.99, dt);
+            q.x += q.vx * dt; q.y += q.vy * dt; q.r += q.vr * dt;
+            cx.save(); cx.translate(q.x, q.y); cx.rotate(q.r);
+            cx.fillStyle = q.c; cx.fillRect(-q.w / 2, -q.h / 2, q.w, q.h * Math.abs(Math.cos(q.r * 2)) + 1);
+            cx.restore();
+        });
+        if (now - t0 < CONFETTI_MS) requestAnimationFrame(step);
+        else stop();
+    };
+    requestAnimationFrame(step);
 }
 
 function showResult(entry, animate = false) {
@@ -774,107 +898,151 @@ function wheelItems(list) {
 }
 
 // ===== 画面の更新 =====
+// 変わったところだけ書き換える。入力中の欄は上書きしない（フォーカスや変換中の文字を消さないため）
+let listsSig = '';
 function renderLists() {
     const sel = $('listSelect');
-    sel.innerHTML = '';
-    state.lists.forEach(l => {
-        const o = document.createElement('option');
-        o.value = l.id; o.textContent = l.name;
-        sel.append(o);
-    });
+    const sig = state.lists.map(l => l.id + '\u0001' + l.name).join('\u0002');
+    if (sig !== listsSig) {
+        listsSig = sig;
+        sel.textContent = '';
+        state.lists.forEach(l => {
+            const o = document.createElement('option');
+            o.value = l.id; o.textContent = l.name;
+            sel.append(o);
+        });
+    }
     sel.value = state.currentListId;
+}
+
+const itemRows = new Map();   // 項目 id → その行の要素
+let rowsListId = null;
+const findItem = (id) => curList().items.find(i => i.id === id);
+
+function createItemRow(id) {
+    const r = {};
+    r.li = document.createElement('li');
+    r.handle = document.createElement('span');
+    r.handle.className = 'handle'; r.handle.textContent = '⋮⋮'; r.handle.title = 'ドラッグで並べ替え';
+    r.handle.addEventListener('pointerdown', (e) => startDrag(e, r.li, r.handle));
+
+    r.sw = document.createElement('label');
+    r.sw.className = 'swatch';
+    r.ci = document.createElement('input');
+    r.ci.type = 'color';
+    r.ci.addEventListener('input', () => { const it = findItem(id); if (!it) return; it.color = r.ci.value; r.sw.style.background = r.ci.value; drawWheel(); });
+    r.ci.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.color = r.ci.value; saveState(); renderItems(); });
+    r.mark = document.createElement('span'); r.mark.className = 'auto-mark'; r.mark.textContent = 'A';
+    r.sw.append(r.ci, r.mark);
+
+    const nameWrap = document.createElement('div');
+    r.name = document.createElement('input');
+    r.name.type = 'text'; r.name.className = 'name'; r.name.maxLength = 40;
+    r.name.addEventListener('input', () => { const it = findItem(id); if (!it) return; it.name = r.name.value; drawWheel(); renderStage(); });
+    r.name.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.name = r.name.value.trim(); r.name.value = it.name; saveState(); renderAll(); });
+    r.pct = document.createElement('span'); r.pct.className = 'pct';
+    nameWrap.append(r.name, r.pct);
+
+    r.w = document.createElement('input');
+    r.w.type = 'number'; r.w.min = 1; r.w.max = MAX_WEIGHT; r.w.step = 1; r.w.inputMode = 'numeric';
+    r.w.title = '出やすさ（1〜' + MAX_WEIGHT + '）';
+    r.w.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.weight = clampWeight(r.w.value); r.w.value = it.weight; saveState(); renderAll(); });
+
+    r.star = document.createElement('button');
+    r.star.type = 'button'; r.star.className = 'star'; r.star.textContent = '★';
+    r.star.addEventListener('click', () => { const it = findItem(id); if (!it) return; it.win = !it.win; saveState(); renderItems(); });
+
+    r.del = document.createElement('button');
+    r.del.type = 'button'; r.del.className = 'del'; r.del.textContent = '✕'; r.del.title = '削除';
+    r.del.addEventListener('click', () => deleteItem(id));
+
+    r.li.append(r.handle, r.sw, nameWrap, r.w, r.star, r.del);
+    return r;
+}
+
+function deleteItem(id) {
+    const list = curList();
+    const item = list.items.find(i => i.id === id);
+    if (!item || isSpinning()) return;
+    const stack = undoStacks.get(list.id) || [];
+    stack.push({ item, index: list.items.indexOf(item), wasExcluded: list.excluded.includes(id) });
+    if (stack.length > MAX_UNDO) stack.shift();
+    undoStacks.set(list.id, stack);
+    list.items = list.items.filter(i => i !== item);
+    list.excluded = list.excluded.filter(x => x !== id);
+    if (highlight === id) clearResult();
+    saveState(); renderAll();
+}
+
+function setIfIdle(input, value) {   // 入力中の欄は上書きしない
+    if (document.activeElement !== input && input.value !== String(value)) input.value = value;
 }
 
 function renderItems() {
     const list = curList();
     const ul = $('items');
-    const focusedId = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.focusKey : null;
-    ul.innerHTML = '';
+    if (rowsListId !== list.id) { itemRows.clear(); ul.textContent = ''; rowsListId = list.id; }
+    const spinning = isSpinning();
     const total = list.items.filter(i => i.name.trim() && !(list.excludeMode && list.excluded.includes(i.id))).reduce((s, i) => s + i.weight, 0);
-    list.items.forEach(item => {
-        const li = document.createElement('li');
+    const seen = new Set();
+    list.items.forEach((item, idx) => {
+        let r = itemRows.get(item.id);
+        if (!r) { r = createItemRow(item.id); itemRows.set(item.id, r); }
+        seen.add(item.id);
         const excluded = list.excludeMode && list.excluded.includes(item.id);
-        li.className = 'item' + (excluded ? ' excluded' : '');
-
-        const handle = document.createElement('span');
-        handle.className = 'handle'; handle.textContent = '⋮⋮'; handle.title = 'ドラッグで並べ替え';
-        handle.addEventListener('pointerdown', (e) => startDrag(e, li, handle));
-
-        const sw = document.createElement('label');
-        sw.className = 'swatch';
-        sw.style.background = itemColor(list, item);
-        sw.title = item.color ? '色を変える（設定タブで自動に戻せます）' : '色を変える（今はテーマの自動配色）';
-        const ci = document.createElement('input');
-        ci.type = 'color'; ci.value = itemColor(list, item);
-        ci.addEventListener('input', () => { item.color = ci.value; sw.style.background = ci.value; drawWheel(); });
-        ci.addEventListener('change', () => { item.color = ci.value; saveState(); renderItems(); });
-        sw.append(ci);
-        if (!item.color) { const m = document.createElement('span'); m.className = 'auto-mark'; m.textContent = 'A'; sw.append(m); }
-
-        const nameWrap = document.createElement('div');
-        const name = document.createElement('input');
-        name.type = 'text'; name.className = 'name'; name.value = item.name; name.maxLength = 40;
-        name.dataset.focusKey = 'n' + item.id;
-        name.addEventListener('input', () => { item.name = name.value; drawWheel(); });
-        name.addEventListener('change', () => { item.name = name.value.trim(); saveState(); renderAll(); });
-        nameWrap.append(name);
-        const pct = document.createElement('span');
-        pct.className = 'pct';
-        pct.textContent = excluded ? '除外中' : (item.name.trim() && total ? (100 * item.weight / total).toFixed(1) + '%' : '');
-        nameWrap.append(pct);
-
-        const w = document.createElement('input');
-        w.type = 'number'; w.min = 1; w.max = MAX_WEIGHT; w.step = 1; w.value = item.weight; w.inputMode = 'numeric';
-        w.title = '出やすさ（1〜' + MAX_WEIGHT + '）';
-        w.dataset.focusKey = 'w' + item.id;
-        w.addEventListener('change', () => { item.weight = clampWeight(w.value); saveState(); renderAll(); });
-
-        const star = document.createElement('button');
-        star.type = 'button'; star.className = 'star'; star.textContent = '★';
-        star.setAttribute('aria-pressed', item.win ? 'true' : 'false');
-        star.title = item.win ? '当たり（押すと外す）' : '当たりにする';
-        star.addEventListener('click', () => { item.win = !item.win; saveState(); renderItems(); });
-
-        const del = document.createElement('button');
-        del.type = 'button'; del.className = 'del'; del.textContent = '✕'; del.title = '削除';
-        del.addEventListener('click', () => {
-            const index = list.items.indexOf(item);
-            const stack = undoStacks.get(list.id) || [];
-            stack.push({ item, index, wasExcluded: list.excluded.includes(item.id) });
-            if (stack.length > MAX_UNDO) stack.shift();
-            undoStacks.set(list.id, stack);
-            list.items = list.items.filter(i => i !== item);
-            list.excluded = list.excluded.filter(id => id !== item.id);
-            if (highlight === item.id) clearResult();
-            saveState(); renderAll();
-        });
-
-        [ci, name, w, star, del].forEach(el => { el.disabled = isSpinning(); });
-        li.append(handle, sw, nameWrap, w, star, del);
-        ul.append(li);
+        r.li.className = 'item' + (excluded ? ' excluded' : '');
+        const color = itemColor(list, item);
+        r.sw.style.background = color;
+        r.sw.title = item.color ? '色を変える（設定タブで自動に戻せます）' : '色を変える（今はテーマの自動配色）';
+        setIfIdle(r.ci, color);
+        r.mark.hidden = !!item.color;
+        setIfIdle(r.name, item.name);
+        r.pct.textContent = excluded ? '除外中' : (item.name.trim() && total ? (100 * item.weight / total).toFixed(1) + '%' : '');
+        setIfIdle(r.w, item.weight);
+        r.star.setAttribute('aria-pressed', item.win ? 'true' : 'false');
+        r.star.title = item.win ? '当たり（押すと外す）' : '当たりにする';
+        [r.ci, r.name, r.w, r.star, r.del].forEach(el => { el.disabled = spinning; });
+        if (ul.children[idx] !== r.li) ul.insertBefore(r.li, ul.children[idx] || null);
     });
-    if (focusedId) {
-        const el = ul.querySelector(`[data-focus-key="${focusedId}"]`);
-        if (el && !el.disabled) el.focus();
+    for (const [id, r] of itemRows) {
+        if (!seen.has(id)) { r.li.remove(); itemRows.delete(id); }
     }
-    $('addName').disabled = isSpinning() || list.items.length >= MAX_ITEMS;
+    $('addName').disabled = spinning || list.items.length >= MAX_ITEMS;
     $('addName').placeholder = list.items.length >= MAX_ITEMS ? `項目は${MAX_ITEMS}個まで` : '項目を追加';
     $('resetExcluded').hidden = !list.excludeMode;
-    $('resetExcluded').disabled = isSpinning() || !list.excluded.length;
+    $('resetExcluded').disabled = spinning || !list.excluded.length;
     const stack = undoStacks.get(list.id) || [];
     const lastDel = stack[stack.length - 1];
     $('undoDelete').hidden = !lastDel;
-    $('undoDelete').disabled = isSpinning();
+    $('undoDelete').disabled = spinning;
     $('undoDelete').textContent = lastDel ? `↩ 「${lastDel.item.name || '(名前なし)'}」を元に戻す` : '';
 }
 
+// 履歴の 1 件を検証する: 記録した候補とシード値から結果を計算し直し、記録と比べる
+function verifyEntry(h) {
+    const snap = h.snap && state.snapshots[h.snap];
+    if (!snap) return { ok: null, text: 'この記録には検証用のデータがありません（機能を追加する前の記録です）。' };
+    const cands = snap.map(([name, weight]) => ({ name, weight }));
+    const { seg } = pickFromSeed(h.seed, cands);
+    const total = cands.reduce((a, c) => a + c.weight, 0);
+    const list = cands.map(c => `${c.name}（${(100 * c.weight / total).toFixed(1)}%）`).join('、');
+    return seg.item.name === h.name
+        ? { ok: true, text: `シード値 ${h.seed} から計算し直しても「${seg.item.name}」になりました。`, list }
+        : { ok: false, text: `計算し直すと「${seg.item.name}」になり、記録の「${h.name}」と一致しません。`, list };
+}
+
+let historySig = '';
 function renderHistory() {
     const list = curList();
     const ul = $('history');
-    ul.innerHTML = '';
     // 回転中の結果はまだ見せない
     const entries = list.history.filter(h => !(spin && h === spin.entry));
-    $('historyCount').textContent = `これまでの抽選: ${list.spinCount} 回`;
+    const sig = [list.id, list.history.length, entries.length, entries[0] ? entries[0].n + entries[0].seed : ''].join('|');
+    $('historyCount').textContent = `これまでの抽選: ${list.spinCount} 回（通算 ${state.totalSpins} 回）`;
+    $('clearHistory').disabled = isSpinning() || !list.history.length;
+    if (sig === historySig) return;
+    historySig = sig;
+    ul.textContent = '';
     if (!entries.length) {
         const li = document.createElement('li');
         li.textContent = 'まだ抽選していません';
@@ -885,26 +1053,60 @@ function renderHistory() {
         const li = document.createElement('li');
         const no = document.createElement('span'); no.className = 'no'; no.textContent = formatNo(h.n);
         const what = document.createElement('span'); what.className = 'what' + (h.win ? ' win' : ''); what.textContent = (h.win ? '★ ' : '') + h.name;
-        const meta = document.createElement('span'); meta.className = 'meta'; meta.textContent = `${formatTime(h.time)} · ${h.seed}`;
-        li.append(no, what, meta);
+        const meta = document.createElement('span'); meta.className = 'meta';
+        meta.textContent = `${h.g ? '通算' + h.g + ' · ' : ''}${formatTime(h.time)} · ${h.seed}`;
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'btn sub verify-btn'; btn.textContent = '検証';
+        btn.addEventListener('click', () => {
+            const old = li.querySelector('.verify');
+            if (old) { old.remove(); return; }
+            const v = verifyEntry(h);
+            const box = document.createElement('div');
+            box.className = 'verify' + (v.ok === true ? ' ok' : v.ok === false ? ' ng' : '');
+            const head = document.createElement('b');
+            head.textContent = v.ok === true ? '✓ 一致 ' : v.ok === false ? '✗ 不一致 ' : '';
+            box.append(head, document.createTextNode(v.text));
+            if (v.list) {
+                const c = document.createElement('div'); c.className = 'cands';
+                c.textContent = '候補: ' + v.list;
+                box.append(c);
+            }
+            li.append(box);
+        });
+        li.append(no, what, btn, meta);
         ul.append(li);
     });
-    $('clearHistory').disabled = isSpinning() || !list.history.length;
 }
 
-function renderSettings() {
+// 設定のボタンは最初に 1 回だけ作り、押された状態だけ更新する
+function buildSettings() {
     const box = $('themes');
-    box.innerHTML = '';
     Object.entries(THEMES).forEach(([key, t]) => {
         const b = document.createElement('button');
-        b.type = 'button'; b.className = 'theme';
-        b.setAttribute('aria-pressed', state.theme === key ? 'true' : 'false');
+        b.type = 'button'; b.className = 'theme'; b.dataset.key = key;
         b.textContent = t.name;
         const dots = document.createElement('span'); dots.className = 'dots';
         t.colors.slice(0, 6).forEach(c => { const i = document.createElement('i'); i.style.background = c; dots.append(i); });
         b.append(dots);
         b.addEventListener('click', () => { state.theme = key; saveState(); renderAll(); });
         box.append(b);
+    });
+    const sp = $('speeds');
+    Object.entries(SPEEDS).forEach(([key, v]) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.key = key;
+        b.textContent = v.name;
+        const sm = document.createElement('small'); sm.textContent = (v.ms / 1000).toFixed(1) + ' 秒';
+        b.append(sm);
+        b.addEventListener('click', () => { state.speed = key; saveState(); renderSettings(); });
+        sp.append(b);
+    });
+}
+function renderSettings() {
+    document.querySelectorAll('#themes .theme').forEach(b => b.setAttribute('aria-pressed', state.theme === b.dataset.key ? 'true' : 'false'));
+    document.querySelectorAll('#speeds button').forEach(b => {
+        b.setAttribute('aria-pressed', state.speed === b.dataset.key ? 'true' : 'false');
+        b.disabled = isSpinning();
     });
     $('excludeMode').checked = curList().excludeMode;
     $('excludeMode').disabled = isSpinning();
@@ -1203,6 +1405,7 @@ function selectTab(name) {
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => selectTab(t.dataset.tab)));
 
 // ===== 起動 =====
+buildSettings();
 loadState();
 showLastOf(curList());
 renderAll();
