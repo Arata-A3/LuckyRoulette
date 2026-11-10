@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LuckyRoulette</title>
+<meta name="description" content="自分で設定した項目の中からルーレットで1つを選ぶアプリ">
+<meta name="theme-color" content="#1b1730">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LuckyRoulette">
+<meta property="og:title" content="LuckyRoulette">
+<meta property="og:description" content="自分で設定した項目の中からルーレットで1つを選ぶアプリ">
+<meta property="og:url" content="https://arata-a3.github.io/LuckyRoulette/">
+<meta property="og:image" content="https://arata-a3.github.io/LuckyRoulette/og-image.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+    --bg: #f4f2fa;
+    --panel: #ffffff;
+    --panel-2: #f0edf8;
+    --text: #23202e;
+    --muted: #77728a;
+    --line: #dcd7ea;
+    --accent: #6b4ce6;
+    --accent-text: #ffffff;
+    --danger: #d23b4b;
+    --shadow: 0 6px 24px rgba(40, 30, 80, .12);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #15131f;
+        --panel: #211e30;
+        --panel-2: #2a2640;
+        --text: #ece9f7;
+        --muted: #9a94b3;
+        --line: #3a3552;
+        --accent: #8f76ff;
+        --accent-text: #ffffff;
+        --danger: #ff6b7a;
+        --shadow: 0 6px 24px rgba(0, 0, 0, .4);
+    }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+button, select, input { font: inherit; color: inherit; }
+button { touch-action: manipulation; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+
+#app {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    gap: 12px;
+    max-width: 1200px; margin: 0 auto;
+}
+
+/* ヘッダー */
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+header h1 {
+    margin: 0; font-size: 1.35rem; letter-spacing: .02em; white-space: nowrap;
+    background: linear-gradient(90deg, #ff4d6d, #ffb000, #3ccf6e, #2f9bff, #9b5cff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.list-bar { display: flex; align-items: center; gap: 6px; margin-left: auto; min-width: 0; }
+.list-bar select {
+    min-width: 0; max-width: 46vw; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel);
+}
+.icon-btn {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 10px;
+    padding: 8px 10px; line-height: 1; white-space: nowrap;
+}
+.icon-btn:hover:not(:disabled) { background: var(--panel-2); }
+
+main { display: flex; gap: 16px; flex: 1; min-height: 0; }
+
+/* ルーレット */
+.stage {
+    flex: 1 1 55%; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    padding: 8px 0;
+}
+.wheel-wrap {
+    position: relative;
+    width: min(92vw, 62vh, 520px); width: min(92vw, 62dvh, 520px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+}
+.wheel-wrap::before {
+    content: ""; position: absolute; inset: -8px; border-radius: 50%;
+    background: var(--panel); box-shadow: var(--shadow);
+}
+.wheel-wrap.rainbow::before {
+    background: conic-gradient(#ff3b5c, #ff9f1a, #ffe14d, #3ccf6e, #2fb8ff, #6b6bff, #c35cff, #ff3b5c);
+    animation: spinRing 1.6s linear infinite;
+    filter: drop-shadow(0 0 14px rgba(255, 120, 220, .8));
+}
+@keyframes spinRing { to { transform: rotate(360deg); } }
+canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; }
+.pointer {
+    position: absolute; left: 50%; top: -14px; transform: translateX(-50%);
+    width: 0; height: 0; z-index: 2;
+    border-left: 16px solid transparent; border-right: 16px solid transparent;
+    border-top: 30px solid var(--text);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.3));
+}
+.hub {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 24%; aspect-ratio: 1; border-radius: 50%; z-index: 2;
+    border: 4px solid var(--panel); background: var(--accent); color: var(--accent-text);
+    font-weight: 700; font-size: clamp(.8rem, 3.6vw, 1.25rem); letter-spacing: .05em; white-space: nowrap; padding: 0;
+    box-shadow: 0 3px 12px rgba(0,0,0,.25);
+}
+.hub:hover:not(:disabled) { filter: brightness(1.1); }
+.hub:active:not(:disabled) { transform: translate(-50%, -50%) scale(.96); }
+
+.result {
+    min-height: 2.4em; font-size: clamp(1.2rem, 4.5vw, 1.8rem); font-weight: 700; text-align: center;
+    overflow-wrap: anywhere; max-width: 100%;
+}
+.result.win {
+    background: linear-gradient(90deg, #ff3b5c, #ff9f1a, #e6c200, #3ccf6e, #2fb8ff, #8a5cff, #ff3b5c);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: rainbowText 1.2s linear infinite;
+}
+.result small { display: block; font-size: .55em; font-weight: 600; }
+@keyframes rainbowText { to { background-position: 200% 0; } }
+.seed {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: .8rem; color: var(--muted); opacity: .6; min-height: 1.2em; text-align: center;
+    user-select: text;
+}
+.notice { font-size: .9rem; color: var(--muted); text-align: center; }
+
+/* サイドパネル */
+.side {
+    flex: 1 1 45%; min-width: 0; max-width: 480px;
+    display: flex; flex-direction: column;
+    background: var(--panel); border-radius: 16px; box-shadow: var(--shadow);
+    overflow: hidden;
+}
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tab {
+    flex: 1; padding: 12px 6px; border: 0; background: transparent; color: var(--muted);
+    font-weight: 600; border-bottom: 3px solid transparent;
+}
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-body { padding: 12px; overflow: auto; flex: 1; min-height: 0; }
+.tab-body[hidden] { display: none; }
+
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.item {
+    display: grid; grid-template-columns: 34px 1fr 64px 40px 34px; gap: 6px; align-items: center;
+}
+.item.excluded .name { text-decoration: line-through; opacity: .5; }
+.swatch {
+    width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid var(--line); overflow: hidden;
+    position: relative; cursor: pointer;
+}
+.swatch input { position: absolute; inset: -8px; width: 50px; height: 50px; border: 0; padding: 0; cursor: pointer; opacity: 0; }
+.swatch .auto-mark {
+    position: absolute; right: 1px; bottom: 0; font-size: 9px; font-weight: 700; color: #fff;
+    text-shadow: 0 0 2px #000; pointer-events: none;
+}
+.item input[type="text"], .item input[type="number"], .add-row input, .field input, .field select {
+    width: 100%; min-width: 0; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
+}
+.item input[type="number"] { text-align: right; }
+.star {
+    height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
+    font-size: 1.1rem; line-height: 1; color: var(--muted); padding: 0;
+}
+.star[aria-pressed="true"] {
+    color: #fff; border-color: transparent;
+    background: linear-gradient(135deg, #ff3b5c, #ff9f1a, #3ccf6e, #2fb8ff, #a35cff);
+}
+.del { height: 34px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 0; }
+.del:hover:not(:disabled) { color: var(--danger); }
+.item-head { display: grid; grid-template-columns: 34px 1fr 64px 40px 34px; gap: 6px; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+.item-head span:nth-child(3), .item-head span:nth-child(4) { text-align: center; }
+.pct { font-size: .7rem; color: var(--muted); text-align: right; display: block; margin-top: -2px; }
+.add-row { display: flex; gap: 6px; margin-top: 10px; }
+.btn {
+    border: 0; border-radius: 10px; padding: 9px 14px; background: var(--accent); color: var(--accent-text); font-weight: 600; white-space: nowrap;
+}
+.btn.sub { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+.btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.hint { font-size: .8rem; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+
+.field { margin-bottom: 16px; }
+.field > label, .field > .label { display: block; font-weight: 600; margin-bottom: 6px; }
+.themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.theme {
+    border: 2px solid var(--line); border-radius: 10px; padding: 8px; background: var(--panel-2); text-align: left;
+}
+.theme[aria-pressed="true"] { border-color: var(--accent); }
+.theme .dots { display: flex; gap: 3px; margin-top: 6px; }
+.theme .dots i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.switch { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.switch input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+.history { list-style: none; margin: 0; padding: 0; }
+.history li {
+    display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 8px 4px; border-bottom: 1px solid var(--line);
+}
+.history .no { font-family: ui-monospace, Consolas, monospace; color: var(--muted); grid-row: span 2; align-self: center; }
+.history .what { font-weight: 600; overflow-wrap: anywhere; }
+.history .what.win { color: #e0457b; }
+.history .meta { font-family: ui-monospace, Consolas, monospace; font-size: .75rem; color: var(--muted); }
+.history-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-size: .85rem; color: var(--muted); }
+
+@media (max-width: 768px) {
+    main { flex-direction: column; }
+    .side { max-width: none; flex: 1 0 auto; }
+    .tab-body { overflow: visible; }
+    header h1 { font-size: 1.15rem; }
+}
+@media (max-width: 380px) {
+    header h1 { display: none; }
+    .list-bar { margin-left: 0; width: 100%; }
+    .list-bar select { flex: 1; max-width: none; }
+    .item, .item-head { grid-template-columns: 30px 1fr 54px 34px 28px; gap: 4px; }
+    .swatch { width: 30px; height: 30px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+    main { flex-direction: row; }
+    .side { max-width: 50%; }
+    .wheel-wrap { width: min(44vw, 58vh); width: min(44vw, 58dvh); }
+    .tab-body { overflow: auto; }
+    #app { height: 100dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wheel-wrap.rainbow::before, .result.win { animation: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+    <header>
+        <h1>LuckyRoulette</h1>
+        <div class="list-bar">
+            <select id="listSelect" aria-label="リストを選ぶ"></select>
+            <button class="icon-btn" id="newList" title="新しいリスト">＋ 新規</button>
+            <button class="icon-btn" id="renameList" title="リストの名前を変える">名前</button>
+            <button class="icon-btn" id="deleteList" title="リストを削除">削除</button>
+        </div>
+    </header>
+    <main>
+        <section class="stage">
+            <div class="wheel-wrap" id="wheelWrap">
+                <canvas id="wheel"></canvas>
+                <div class="pointer"></div>
+                <button class="hub" id="spinBtn">回す</button>
+            </div>
+            <div class="seed" id="seedLine"></div>
+            <div class="result" id="result" aria-live="polite"></div>
+            <div class="notice" id="notice"></div>
+        </section>
+        <aside class="side">
+            <div class="tabs" role="tablist">
+                <button class="tab" role="tab" data-tab="items" aria-selected="true">項目</button>
+                <button class="tab" role="tab" data-tab="history" aria-selected="false">履歴</button>
+                <button class="tab" role="tab" data-tab="settings" aria-selected="false">設定</button>
+            </div>
+            <div class="tab-body" id="tab-items">
+                <div class="item-head"><span>色</span><span>項目</span><span>出やすさ</span><span>当たり</span><span></span></div>
+                <ul class="items" id="items"></ul>
+                <form class="add-row" id="addForm">
+                    <input id="addName" type="text" placeholder="項目を追加" maxlength="40" autocomplete="off">
+                    <button class="btn" type="submit">追加</button>
+                </form>
+                <p class="hint">★ を付けた項目は「当たり」。出ると虹色に光ります。出やすさは数字が大きいほど出やすく、マスも大きくなります。</p>
+                <div id="excludeTools" class="add-row" hidden>
+                    <button class="btn sub" id="resetExcluded" type="button">除外をリセット</button>
+                </div>
+            </div>
+            <div class="tab-body" id="tab-history" hidden>
+                <div class="history-tools">
+                    <span id="historyCount"></span>
+                    <button class="btn sub" id="clearHistory" type="button">履歴を消す</button>
+                </div>
+                <ul class="history" id="history"></ul>
+                <p class="hint">履歴を消しても、通し番号（#0001 など）は続きから数えます。</p>
+            </div>
+            <div class="tab-body" id="tab-settings" hidden>
+                <div class="field">
+                    <span class="label">テーマ（自動の配色）</span>
+                    <div class="themes" id="themes"></div>
+                    <button class="btn sub" id="resetColors" type="button" style="margin-top:8px">項目の色をすべて自動に戻す</button>
+                </div>
+                <div class="field">
+                    <span class="label">出た項目を除外</span>
+                    <label class="switch"><input type="checkbox" id="excludeMode"> 一度出た項目を次の回から外す（このリストだけ）</label>
+                </div>
+                <div class="field">
+                    <span class="label">データ</span>
+                    <button class="btn danger" id="fullReset" type="button">すべてのデータを消す</button>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
+<script>
+'use strict';
+
+// ===== 定数 =====
+const SAVE_KEY = 'luckyroulette_save';
+const SAVE_VERSION = 1;
+const MAX_ITEMS = 60;
+const MAX_HISTORY = 500;
+const MAX_WEIGHT = 100;
+const SPIN_MS = 4800;          // 回転にかける時間
+const SEED_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字（I, O, 0, 1）を除く
+
+const THEMES = {
+    vivid:  { name: 'ビビッド', colors: ['#ff4d6d', '#ff9f1c', '#ffd23f', '#3ccf6e', '#2fb8ff', '#5b6cff', '#b15cff', '#ff6fb5'] },
+    pastel: { name: 'パステル', colors: ['#ffb3c1', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'] },
+    ocean:  { name: 'オーシャン', colors: ['#03045e', '#0077b6', '#00b4d8', '#48cae4', '#90e0ef', '#2a9d8f', '#264653', '#4895ef'] },
+    forest: { name: 'フォレスト', colors: ['#2d6a4f', '#40916c', '#74c69d', '#b7e4c7', '#d4a373', '#a98467', '#606c38', '#dda15e'] },
+    sunset: { name: 'サンセット', colors: ['#5f0f40', '#9a031e', '#e36414', '#fb8b24', '#ffb703', '#d62828', '#f77f00', '#7b2cbf'] },
+    mono:   { name: 'モノトーン', colors: ['#222222', '#555555', '#888888', '#bbbbbb', '#e0e0e0', '#3d3d3d', '#6f6f6f', '#a2a2a2'] },
+};
+
+// ===== 状態 =====
+let state;
+let resetting = false;
+let spin = null;          // 回転中: { start, from, to, entry }
+let rotation = 0;         // ホイールの角度（度、時計回り）
+let highlight = null;     // 結果表示中の項目 id
+let winGlow = false;
+let rafId = 0;
+let spinCands = null;     // 回転中にホイールに載っている項目
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+
+function makeItem(name, extra = {}) {
+    return { id: uid(), name, weight: 1, color: null, win: false, ...extra };
+}
+function makeList(name, names = []) {
+    return { id: uid(), name, items: names.map(n => makeItem(n)), excludeMode: false, excluded: [], spinCount: 0, history: [] };
+}
+function makeDefaultState() {
+    const lunch = makeList('お昼ごはん', ['ラーメン', 'カレー', 'パスタ', '定食', 'ハンバーガー', 'お寿司']);
+    lunch.items[5].win = true;
+    return { saveVersion: SAVE_VERSION, theme: 'vivid', currentListId: lunch.id, lists: [lunch] };
+}
+
+// ===== セーブ =====
+function saveState() {
+    if (resetting) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+    catch (err) { console.error(err); showNotice('保存できませんでした'); }
+}
+function loadState() {
+    let raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (err) { console.error(err); }
+    state = makeDefaultState();
+    if (!raw) return;
+    let p;
+    try {
+        p = JSON.parse(raw);
+        if (!p || typeof p !== 'object' || !Array.isArray(p.lists)) throw new Error('invalid save');
+    } catch (err) {
+        try { localStorage.setItem(SAVE_KEY + '_corrupted', raw); } catch (e) { }
+        setTimeout(() => showNotice('保存データが壊れていたため、初期状態で始めました'), 0);
+        return;
+    }
+    const lists = p.lists.map(sanitizeList).filter(Boolean);
+    if (!lists.length) return;
+    state = {
+        saveVersion: SAVE_VERSION,
+        theme: THEMES[p.theme] ? p.theme : 'vivid',
+        currentListId: lists.some(l => l.id === p.currentListId) ? p.currentListId : lists[0].id,
+        lists,
+    };
+}
+function sanitizeList(l) {
+    if (!l || typeof l !== 'object') return null;
+    const base = makeList(typeof l.name === 'string' && l.name ? l.name : 'リスト');
+    const items = Array.isArray(l.items) ? l.items.filter(i => i && typeof i === 'object').slice(0, MAX_ITEMS).map(i => ({
+        id: typeof i.id === 'string' ? i.id : uid(),
+        name: typeof i.name === 'string' ? i.name.slice(0, 40) : '',
+        weight: clampWeight(i.weight),
+        color: /^#[0-9a-f]{6}$/i.test(i.color) ? i.color : null,
+        win: !!i.win,
+    })) : [];
+    const ids = new Set(items.map(i => i.id));
+    return {
+        id: typeof l.id === 'string' ? l.id : base.id,
+        name: base.name,
+        items,
+        excludeMode: !!l.excludeMode,
+        excluded: Array.isArray(l.excluded) ? l.excluded.filter(id => ids.has(id)) : [],
+        spinCount: Number.isFinite(l.spinCount) && l.spinCount >= 0 ? Math.floor(l.spinCount) : 0,
+        history: Array.isArray(l.history) ? l.history.filter(h => h && typeof h === 'object' && Number.isFinite(h.n)).slice(0, MAX_HISTORY) : [],
+    };
+}
+function clampWeight(w) {
+    const n = Math.round(Number(w));
+    return Number.isFinite(n) ? Math.min(MAX_WEIGHT, Math.max(1, n)) : 1;
+}
+window.addEventListener('beforeunload', () => saveState());
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+
+// ===== 便利関数 =====
+const $ = (id) => document.getElementById(id);
+const curList = () => state.lists.find(l => l.id === state.currentListId);
+const isSpinning = () => !!spin;
+
+function itemColor(list, item) {
+    if (item.color) return item.color;
+    const pal = THEMES[state.theme].colors;
+    const idx = list.items.indexOf(item);
+    let c = pal[idx % pal.length];
+    // 最後のマスが最初のマスと同じ色にならないようにする
+    if (idx === list.items.length - 1 && idx > 0 && idx % pal.length === 0) c = pal[1 % pal.length];
+    return c;
+}
+function textColorFor(hex) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 160 ? '#1d1b26' : '#ffffff';
+}
+// ルーレットに乗る候補（名前が空のもの・除外中のものは外す）
+function candidates(list) {
+    return list.items.filter(i => i.name.trim() && !(list.excludeMode && list.excluded.includes(i.id)));
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function formatTime(ms) {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function formatNo(n) { return '#' + String(n).padStart(4, '0'); }
+function seedLine(h) { return `${formatNo(h.n)} · ${formatTime(h.time)} · ${h.seed}`; }
+
+// ===== シードと乱数 =====
+function makeSeed() {
+    const buf = new Uint32Array(8);
+    crypto.getRandomValues(buf);
+    let s = '';
+    for (let i = 0; i < 8; i++) s += SEED_CHARS[buf[i] % SEED_CHARS.length];
+    return s.slice(0, 4) + '-' + s.slice(4);
+}
+// 文字列 → 32bit ハッシュ（FNV-1a）
+function hashStr(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return h >>> 0;
+}
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+// 候補の並び（角度）: 重みに合わせて 0〜360° を割り当てる。0° が真上、時計回り
+function layout(cands) {
+    const total = cands.reduce((s, i) => s + i.weight, 0);
+    let a = 0;
+    return cands.map(item => {
+        const span = 360 * item.weight / total;
+        const seg = { item, start: a, end: a + span };
+        a += span;
+        return seg;
+    });
+}
+
+// ===== 描画 =====
+const canvas = $('wheel');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const size = Math.max(1, Math.round(rect.width * dpr));
+    if (canvas.width !== size) { canvas.width = size; canvas.height = size; }
+    drawWheel();
+}
+
+function drawWheel(now = performance.now()) {
+    const list = curList();
+    const segs = layout(wheelItems(list));
+    const W = canvas.width, R = W / 2;
+    ctx.clearRect(0, 0, W, W);
+    ctx.save();
+    ctx.translate(R, R);
+
+    if (!segs.length) {
+        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel-2');
+        ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        return;
+    }
+
+    const toRad = (deg) => (deg - 90 + rotation) * Math.PI / 180;
+    segs.forEach((seg, i) => {
+        const { item } = seg;
+        const a0 = toRad(seg.start), a1 = toRad(seg.end);
+        let fill = itemColor(list, item);
+        if (highlight === item.id && winGlow) {
+            fill = `hsl(${(now / 6) % 360}, 90%, 60%)`;
+        }
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, R, a0, a1);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+        if (highlight && highlight !== item.id) {   // 結果以外は暗くする
+            ctx.fillStyle = 'rgba(0,0,0,.35)';
+            ctx.fill();
+        }
+        if (segs.length > 1) {
+            ctx.strokeStyle = 'rgba(255,255,255,.7)';
+            ctx.lineWidth = Math.max(1, W / 300);
+            ctx.stroke();
+        }
+
+        // 文字（中心から外向き）
+        const span = seg.end - seg.start;
+        const mid = (a0 + a1) / 2;
+        const maxLen = R * 0.68;
+        let fontPx = Math.min(R * 0.11, (span / 360) * 2 * Math.PI * R * 0.62 * 0.8);
+        if (segs.length === 1) fontPx = R * 0.11;
+        if (fontPx < W * 0.012) return;           // 細すぎるマスは文字を省く
+        ctx.save();
+        // 左半分のマスは文字が逆さにならないよう、向きを反対にする
+        const flip = segs.length > 1 && Math.cos(mid) < 0;
+        ctx.rotate(segs.length === 1 ? -Math.PI / 2 : (flip ? mid + Math.PI : mid));
+        ctx.fillStyle = (highlight === item.id && winGlow) ? '#ffffff' : textColorFor(itemColor(list, item));
+        ctx.textAlign = flip ? 'left' : 'right';
+        ctx.textBaseline = 'middle';
+        ctx.font = `700 ${fontPx}px system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif`;
+        let label = item.name;
+        while (label.length > 1 && ctx.measureText(label).width > maxLen) label = label.slice(0, -1);
+        if (label !== item.name) label = label.slice(0, -1) + '…';
+        if (highlight === item.id && winGlow) { ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = fontPx / 3; }
+        ctx.fillText(label, flip ? -R * 0.92 : R * 0.92, 0);
+        ctx.restore();
+    });
+    ctx.restore();
+}
+
+function loop(now) {
+    rafId = 0;
+    if (spin) {
+        const t = Math.min(1, (now - spin.start) / SPIN_MS);
+        const eased = 1 - Math.pow(1 - t, 4);     // だんだん遅くなる
+        rotation = spin.from + (spin.to - spin.from) * eased;
+        if (t >= 1) finishSpin();
+    }
+    drawWheel(now);
+    if (spin || winGlow) rafId = requestAnimationFrame(loop);
+}
+function startLoop() { if (!rafId) rafId = requestAnimationFrame(loop); }
+
+// ===== 抽選 =====
+function doSpin() {
+    if (isSpinning()) return;
+    const list = curList();
+    const cands = candidates(list);
+    if (!cands.length) return;
+
+    const seed = makeSeed();
+    const rng = mulberry32(hashStr(seed));
+    const segs = layout(cands);
+    // 重み付きで1つ選ぶ（シードから決まる）
+    let r = rng() * 360, seg = segs[segs.length - 1];
+    for (const s of segs) { if (r < s.end) { seg = s; break; } }
+    const span = seg.end - seg.start;
+    const target = seg.start + span * (0.12 + 0.76 * rng());   // マスの端ぎりぎりは避ける
+    const turns = 5 + Math.floor(rng() * 3);
+
+    // 針（真上）が target を指す角度: rotation ≡ -target (mod 360)
+    const from = ((rotation % 360) + 360) % 360;
+    let delta = ((-target - from) % 360 + 360) % 360;
+    const to = from + turns * 360 + delta;
+
+    // 回し始めた時点で履歴に記録する（途中で再読み込みしても、やり直しにならない）
+    list.spinCount += 1;
+    const entry = { n: list.spinCount, time: Date.now(), seed, itemId: seg.item.id, name: seg.item.name, win: seg.item.win };
+    list.history.unshift(entry);
+    if (list.history.length > MAX_HISTORY) list.history.length = MAX_HISTORY;
+    if (list.excludeMode && !list.excluded.includes(seg.item.id)) list.excluded.push(seg.item.id);
+    saveState();
+
+    rotation = from;
+    highlight = null;
+    winGlow = false;
+    $('wheelWrap').classList.remove('rainbow');
+    $('result').className = 'result';
+    $('result').textContent = '';
+    $('seedLine').textContent = seedLine(entry);
+    // 除外モードでも回転中は今の並びのままにする
+    spin = { start: performance.now(), from, to, entry };
+    spinCands = cands;
+    renderAll();
+    startLoop();
+}
+function finishSpin() {
+    const { entry, to } = spin;
+    rotation = to % 360;
+    spin = null;
+    spinCands = null;
+    showResult(entry);
+    renderAll();
+}
+
+function showResult(entry) {
+    const list = curList();
+    const el = $('result');
+    if (!entry) { el.className = 'result'; el.textContent = ''; return; }
+    highlight = entry.itemId;
+    const stillOnWheel = wheelItems(list).some(i => i.id === entry.itemId);
+    if (!stillOnWheel) highlight = null;
+    winGlow = !!entry.win && stillOnWheel;
+    el.className = 'result' + (entry.win ? ' win' : '');
+    el.innerHTML = '';
+    el.append(document.createTextNode(entry.name));
+    if (entry.win) {
+        const s = document.createElement('small');
+        s.textContent = '★ 当たり！ ★';
+        el.append(s);
+    }
+    $('wheelWrap').classList.toggle('rainbow', !!entry.win);
+    if (winGlow) startLoop();
+}
+
+function clearResult() {
+    highlight = null; winGlow = false;
+    $('wheelWrap').classList.remove('rainbow');
+    $('result').className = 'result';
+    $('result').textContent = '';
+}
+
+// ホイールに描く項目。回転中は回し始めの並びのまま。
+// 除外モードで結果を表示している間は、出た項目もホイールに残す
+function wheelItems(list) {
+    if (spinCands && list === curList()) return spinCands;
+    const c = candidates(list);
+    if (highlight && list.excludeMode && !c.some(i => i.id === highlight)) {
+        return list.items.filter(i => c.includes(i) || i.id === highlight);
+    }
+    return c;
+}
+
+// ===== 画面の更新 =====
+function renderLists() {
+    const sel = $('listSelect');
+    sel.innerHTML = '';
+    state.lists.forEach(l => {
+        const o = document.createElement('option');
+        o.value = l.id; o.textContent = l.name;
+        sel.append(o);
+    });
+    sel.value = state.currentListId;
+}
+
+function renderItems() {
+    const list = curList();
+    const ul = $('items');
+    const focusedId = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.focusKey : null;
+    ul.innerHTML = '';
+    const total = list.items.filter(i => i.name.trim() && !(list.excludeMode && list.excluded.includes(i.id))).reduce((s, i) => s + i.weight, 0);
+    list.items.forEach(item => {
+        const li = document.createElement('li');
+        const excluded = list.excludeMode && list.excluded.includes(item.id);
+        li.className = 'item' + (excluded ? ' excluded' : '');
+
+        const sw = document.createElement('label');
+        sw.className = 'swatch';
+        sw.style.background = itemColor(list, item);
+        sw.title = item.color ? '色を変える（設定タブで自動に戻せます）' : '色を変える（今はテーマの自動配色）';
+        const ci = document.createElement('input');
+        ci.type = 'color'; ci.value = itemColor(list, item);
+        ci.addEventListener('input', () => { item.color = ci.value; sw.style.background = ci.value; drawWheel(); });
+        ci.addEventListener('change', () => { item.color = ci.value; saveState(); renderItems(); });
+        sw.append(ci);
+        if (!item.color) { const m = document.createElement('span'); m.className = 'auto-mark'; m.textContent = 'A'; sw.append(m); }
+
+        const nameWrap = document.createElement('div');
+        const name = document.createElement('input');
+        name.type = 'text'; name.className = 'name'; name.value = item.name; name.maxLength = 40;
+        name.dataset.focusKey = 'n' + item.id;
+        name.addEventListener('input', () => { item.name = name.value; drawWheel(); });
+        name.addEventListener('change', () => { item.name = name.value.trim(); saveState(); renderAll(); });
+        nameWrap.append(name);
+        const pct = document.createElement('span');
+        pct.className = 'pct';
+        pct.textContent = excluded ? '除外中' : (item.name.trim() && total ? (100 * item.weight / total).toFixed(1) + '%' : '');
+        nameWrap.append(pct);
+
+        const w = document.createElement('input');
+        w.type = 'number'; w.min = 1; w.max = MAX_WEIGHT; w.step = 1; w.value = item.weight; w.inputMode = 'numeric';
+        w.title = '出やすさ（1〜' + MAX_WEIGHT + '）';
+        w.dataset.focusKey = 'w' + item.id;
+        w.addEventListener('change', () => { item.weight = clampWeight(w.value); saveState(); renderAll(); });
+
+        const star = document.createElement('button');
+        star.type = 'button'; star.className = 'star'; star.textContent = '★';
+        star.setAttribute('aria-pressed', item.win ? 'true' : 'false');
+        star.title = item.win ? '当たり（押すと外す）' : '当たりにする';
+        star.addEventListener('click', () => { item.win = !item.win; saveState(); renderItems(); });
+
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'del'; del.textContent = '✕'; del.title = '削除';
+        del.addEventListener('click', () => {
+            list.items = list.items.filter(i => i !== item);
+            list.excluded = list.excluded.filter(id => id !== item.id);
+            if (highlight === item.id) clearResult();
+            saveState(); renderAll();
+        });
+
+        [ci, name, w, star, del].forEach(el => { el.disabled = isSpinning(); });
+        li.append(sw, nameWrap, w, star, del);
+        ul.append(li);
+    });
+    if (focusedId) {
+        const el = ul.querySelector(`[data-focus-key="${focusedId}"]`);
+        if (el && !el.disabled) el.focus();
+    }
+    $('addName').disabled = isSpinning() || list.items.length >= MAX_ITEMS;
+    $('addName').placeholder = list.items.length >= MAX_ITEMS ? `項目は${MAX_ITEMS}個まで` : '項目を追加';
+    $('excludeTools').hidden = !list.excludeMode;
+    $('resetExcluded').disabled = isSpinning() || !list.excluded.length;
+}
+
+function renderHistory() {
+    const list = curList();
+    const ul = $('history');
+    ul.innerHTML = '';
+    // 回転中の結果はまだ見せない
+    const entries = list.history.filter(h => !(spin && h === spin.entry));
+    $('historyCount').textContent = `これまでの抽選: ${list.spinCount} 回`;
+    if (!entries.length) {
+        const li = document.createElement('li');
+        li.textContent = 'まだ抽選していません';
+        li.style.color = 'var(--muted)';
+        ul.append(li);
+    }
+    entries.forEach(h => {
+        const li = document.createElement('li');
+        const no = document.createElement('span'); no.className = 'no'; no.textContent = formatNo(h.n);
+        const what = document.createElement('span'); what.className = 'what' + (h.win ? ' win' : ''); what.textContent = (h.win ? '★ ' : '') + h.name;
+        const meta = document.createElement('span'); meta.className = 'meta'; meta.textContent = `${formatTime(h.time)} · ${h.seed}`;
+        li.append(no, what, meta);
+        ul.append(li);
+    });
+    $('clearHistory').disabled = isSpinning() || !list.history.length;
+}
+
+function renderSettings() {
+    const box = $('themes');
+    box.innerHTML = '';
+    Object.entries(THEMES).forEach(([key, t]) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'theme';
+        b.setAttribute('aria-pressed', state.theme === key ? 'true' : 'false');
+        b.textContent = t.name;
+        const dots = document.createElement('span'); dots.className = 'dots';
+        t.colors.slice(0, 6).forEach(c => { const i = document.createElement('i'); i.style.background = c; dots.append(i); });
+        b.append(dots);
+        b.addEventListener('click', () => { state.theme = key; saveState(); renderAll(); });
+        box.append(b);
+    });
+    $('excludeMode').checked = curList().excludeMode;
+    $('excludeMode').disabled = isSpinning();
+}
+
+function renderStage() {
+    const list = curList();
+    const n = candidates(list).length;
+    $('spinBtn').disabled = isSpinning() || n === 0;
+    $('spinBtn').textContent = isSpinning() ? '…' : '回す';
+    let msg = '';
+    if (!isSpinning()) {
+        if (!list.items.some(i => i.name.trim())) msg = '「項目」タブで項目を追加してください';
+        else if (n === 0) msg = 'すべての項目が除外されました。「除外をリセット」で元に戻せます';
+    }
+    $('notice').textContent = msg;
+    ['newList', 'renameList', 'deleteList', 'listSelect'].forEach(id => { $(id).disabled = isSpinning(); });
+    $('deleteList').disabled = isSpinning() || state.lists.length <= 1;
+}
+
+function renderAll() {
+    renderLists();
+    renderItems();
+    renderHistory();
+    renderSettings();
+    renderStage();
+    drawWheel();
+}
+
+let noticeTimer = 0;
+function showNotice(msg) {
+    $('notice').textContent = msg;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(renderStage, 4000);
+}
+
+// リストを切り替えたとき・起動時: 最後の結果を表示する
+function showLastOf(list) {
+    rotation = 0;
+    clearResult();
+    const last = list.history[0];
+    $('seedLine').textContent = last ? seedLine(last) : '';
+    if (last) {
+        // 最後に出た項目が針の位置に来るように合わせる
+        const it = list.items.find(i => i.id === last.itemId);
+        showResult(last);
+        if (it) {
+            const seg = layout(wheelItems(list)).find(s => s.item.id === it.id);
+            if (seg) rotation = -(seg.start + seg.end) / 2;
+        }
+    }
+}
+
+// ===== 操作 =====
+$('spinBtn').addEventListener('click', doSpin);
+window.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' && e.code !== 'Enter') return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+    if (e.code === 'Enter' && t && t.tagName === 'BUTTON' && t !== $('spinBtn')) return;
+    e.preventDefault();
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    if (!e.repeat) doSpin();
+});
+window.addEventListener('keyup', (e) => {
+    if (e.code !== 'Space') return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+    e.preventDefault();
+});
+
+$('addForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const list = curList();
+    const v = $('addName').value.trim();
+    if (!v || isSpinning() || list.items.length >= MAX_ITEMS) return;
+    list.items.push(makeItem(v));
+    $('addName').value = '';
+    saveState(); renderAll();
+    $('addName').focus();
+});
+
+$('listSelect').addEventListener('change', (e) => {
+    if (isSpinning()) return;
+    state.currentListId = e.target.value;
+    saveState();
+    showLastOf(curList());
+    renderAll();
+});
+$('newList').addEventListener('click', () => {
+    const name = (prompt('新しいリストの名前', '新しいリスト') || '').trim();
+    if (!name) return;
+    const l = makeList(name.slice(0, 30));
+    state.lists.push(l);
+    state.currentListId = l.id;
+    saveState(); showLastOf(l); renderAll();
+    selectTab('items');
+    $('addName').focus();
+});
+$('renameList').addEventListener('click', () => {
+    const l = curList();
+    const name = (prompt('リストの名前', l.name) || '').trim();
+    if (!name) return;
+    l.name = name.slice(0, 30);
+    saveState(); renderAll();
+});
+$('deleteList').addEventListener('click', () => {
+    if (state.lists.length <= 1) return;
+    const l = curList();
+    if (!confirm(`リスト「${l.name}」を削除しますか？（項目と履歴も消えます）`)) return;
+    state.lists = state.lists.filter(x => x !== l);
+    state.currentListId = state.lists[0].id;
+    saveState(); showLastOf(curList()); renderAll();
+});
+
+$('resetExcluded').addEventListener('click', () => {
+    const l = curList();
+    l.excluded = [];
+    saveState(); renderAll();
+});
+$('excludeMode').addEventListener('change', (e) => {
+    const l = curList();
+    l.excludeMode = e.target.checked;
+    if (!l.excludeMode) l.excluded = [];
+    clearResult();
+    saveState(); renderAll();
+});
+$('resetColors').addEventListener('click', () => {
+    curList().items.forEach(i => { i.color = null; });
+    saveState(); renderAll();
+});
+$('clearHistory').addEventListener('click', () => {
+    const l = curList();
+    if (!confirm(`「${l.name}」の履歴を消しますか？（通し番号は続きから数えます）`)) return;
+    l.history = [];
+    saveState(); renderAll();
+});
+$('fullReset').addEventListener('click', () => {
+    if (!confirm('すべてのリスト・履歴・設定を消しますか？（元に戻せません）')) return;
+    resetting = true;
+    [SAVE_KEY, SAVE_KEY + '_corrupted'].forEach(k => { try { localStorage.removeItem(k); } catch (e) { } });
+    location.reload();
+});
+
+function selectTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
+    ['items', 'history', 'settings'].forEach(n => { $('tab-' + n).hidden = n !== name; });
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => selectTab(t.dataset.tab)));
+
+// ===== 起動 =====
+loadState();
+showLastOf(curList());
+renderAll();
+new ResizeObserver(resizeCanvas).observe(canvas);
+resizeCanvas();
+saveState();
+</script>
+</body>
+</html>
