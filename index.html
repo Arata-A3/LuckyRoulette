@@ -538,8 +538,11 @@ function drawWheel(now = performance.now()) {
         if (segs.length === 1) fontPx = R * 0.11;
         if (fontPx < W * 0.012) return;           // 細すぎるマスは文字を省く
         ctx.save();
-        // 左半分のマスは文字が逆さにならないよう、向きを反対にする
-        const flip = segs.length > 1 && Math.cos(mid) < 0;
+        // 左半分のマスは文字が逆さにならないよう、向きを反対にする。
+        // 回転中は止まる位置で判定する（今の角度で判定すると、真上・真下を通るたびに文字が裏返ってチラつく）
+        const restRot = spin ? spin.to : rotation;
+        const restMid = ((seg.start + seg.end) / 2 - 90 + restRot) * Math.PI / 180;
+        const flip = segs.length > 1 && Math.cos(restMid) < 0;
         ctx.rotate(segs.length === 1 ? -Math.PI / 2 : (flip ? mid + Math.PI : mid));
         ctx.fillStyle = (highlight === item.id && winGlow) ? '#ffffff' : textColorFor(itemColor(list, item));
         ctx.textAlign = flip ? 'left' : 'right';
