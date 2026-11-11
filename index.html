@@ -146,9 +146,10 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: 24%; aspect-ratio: 1; border-radius: 50%; z-index: 2;
     border: 3px solid var(--panel); color: var(--accent-text);
-    background: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0)), var(--accent);
+    background: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, .12)), var(--accent);
     font-weight: 700; font-size: clamp(.8rem, 3.6vw, 1.25rem); letter-spacing: .08em; white-space: nowrap; padding: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -2px 4px rgba(0, 0, 0, .15);
     transition: transform .12s, filter .12s;
 }
 .hub:hover:not(:disabled) { filter: brightness(1.1); }
@@ -610,7 +611,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '1.5.1';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '1.5.2';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
