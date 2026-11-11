@@ -167,23 +167,23 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .tab-body[hidden] { display: none; }
 
 .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.item {
-    display: grid; grid-template-columns: 22px 34px 1fr 64px 40px 34px; gap: 6px; align-items: center;
-    background: var(--panel); border-radius: 8px;
+.item, .item-head {
+    display: grid; grid-template-columns: 20px 36px minmax(0, 1fr) 56px 36px 30px; gap: 6px; align-items: center;
 }
+.item { background: var(--panel); border-radius: 8px; }
 .item.dragging { position: relative; z-index: 5; box-shadow: var(--shadow); opacity: .95; }
 .handle {
-    height: 34px; display: flex; align-items: center; justify-content: center; color: var(--muted);
+    height: 36px; display: flex; align-items: center; justify-content: center; color: var(--muted);
     cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; font-size: 1rem; letter-spacing: -2px;
 }
 .handle:active { cursor: grabbing; }
 .items.sorting { user-select: none; -webkit-user-select: none; }
 .item.excluded .name { text-decoration: line-through; opacity: .5; }
 .swatch {
-    width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid var(--line); overflow: hidden;
-    position: relative; cursor: pointer;
+    width: 36px; height: 36px; padding: 0; border-radius: 8px; border: 1px solid var(--line);
+    position: relative; cursor: pointer; display: block;
 }
-.swatch input { position: absolute; inset: -8px; width: 50px; height: 50px; border: 0; padding: 0; cursor: pointer; opacity: 0; }
+.swatch:focus-visible, .cd-swatches button:focus-visible, .cd-chips button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .swatch .auto-mark {
     position: absolute; right: 1px; bottom: 0; font-size: 9px; font-weight: 700; color: #fff;
     text-shadow: 0 0 2px #000; pointer-events: none;
@@ -191,20 +191,28 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .item input[type="text"], .item input[type="number"], .add-row textarea, .dialog input {
     width: 100%; min-width: 0; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
 }
-.item input[type="number"] { text-align: right; }
+.item input[type="text"], .item input[type="number"] { height: 36px; }
+.item input[type="number"] { text-align: center; padding: 7px 2px; -moz-appearance: textfield; appearance: textfield; }
+.item input[type="number"]::-webkit-inner-spin-button, .item input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.name-wrap { position: relative; min-width: 0; }
+.name-wrap .name { padding-right: 46px; text-overflow: ellipsis; }
 .star {
-    height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
+    height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
     font-size: 1.1rem; line-height: 1; color: var(--muted); padding: 0;
 }
 .star[aria-pressed="true"] {
     color: #fff; border-color: transparent;
     background: linear-gradient(135deg, #ff3b5c, #ff9f1a, #3ccf6e, #2fb8ff, #a35cff);
 }
-.del { height: 34px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 0; }
+.del { height: 36px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 0; }
 .del:hover:not(:disabled) { color: var(--danger); }
-.item-head { display: grid; grid-template-columns: 22px 34px 1fr 64px 40px 34px; gap: 6px; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
-.item-head span:nth-child(4), .item-head span:nth-child(5) { text-align: center; }
-.pct { font-size: .7rem; color: var(--muted); text-align: right; display: block; margin-top: -2px; }
+.item-head { font-size: .75rem; color: var(--muted); margin-bottom: 4px; white-space: nowrap; }
+.item-head span { text-align: center; }
+.item-head span:nth-child(3) { text-align: left; padding-left: 8px; }
+.pct {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: .7rem; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums;
+}
 .add-row { display: flex; gap: 6px; margin-top: 10px; align-items: flex-start; }
 .add-row textarea { resize: none; overflow: hidden; line-height: 1.4; min-height: 36px; font: inherit; }
 .item-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -225,7 +233,45 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
 }
 .btn.sub { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
-.hint { font-size: .8rem; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+.help { margin-top: 14px; font-size: .85rem; color: var(--muted); }
+.help summary {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+    padding: 4px 8px; border-radius: 8px; user-select: none; -webkit-user-select: none;
+}
+.help summary::-webkit-details-marker { display: none; }
+.help summary::before {
+    content: "?"; width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center;
+    border: 1.5px solid currentColor; font-size: .7rem; font-weight: 700;
+}
+.help summary:hover { background: var(--panel-2); }
+.help ul { margin: 6px 0 0; padding: 10px 12px; list-style: none; background: var(--panel-2); border-radius: 10px; display: grid; gap: 6px; line-height: 1.45; }
+.help li { display: grid; grid-template-columns: 6em 1fr; gap: 8px; }
+.help li b { color: var(--text); font-weight: 600; }
+
+/* 色選びパネル */
+dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
+.cd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cd-preview { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); flex: none; }
+.cd-head b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-close { border: 0; background: transparent; color: var(--muted); font-size: 1.2rem; width: 36px; height: 36px; border-radius: 8px; padding: 0; }
+.cd-close:hover { background: var(--panel-2); }
+.cd-sec { margin-bottom: 14px; }
+.cd-sec[hidden] { display: none; }
+.cd-label { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+.cd-swatches { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.cd-swatches button { aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(128, 128, 128, .35); padding: 0; max-width: 44px; }
+.cd-swatches button[aria-pressed="true"], .cd-chips button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.cd-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 132px; overflow: auto; padding: 4px; margin: -4px; }
+.cd-chips button {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px;
+    border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 4px 12px 4px 5px; font-size: .85rem;
+}
+.cd-chips button i { width: 24px; height: 24px; border-radius: 50%; flex: none; border: 1px solid rgba(128, 128, 128, .35); }
+.cd-chips button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cd-actions .btn { flex: 1; min-height: 40px; }
+.cd-custom { position: relative; overflow: hidden; text-align: center; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.cd-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 
 .field { margin-bottom: 16px; }
 .field > label, .field > .label { display: block; font-weight: 600; margin-bottom: 6px; }
@@ -269,8 +315,9 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
     header h1 { display: none; }
     .list-bar { margin-left: 0; width: 100%; }
     .list-bar select { flex: 1; max-width: none; }
-    .item, .item-head { grid-template-columns: 18px 30px 1fr 54px 34px 28px; gap: 4px; }
-    .swatch { width: 30px; height: 30px; }
+    .item, .item-head { grid-template-columns: 16px 34px minmax(0, 1fr) 46px 34px 26px; gap: 4px; }
+    .swatch { width: 34px; height: 34px; }
+    .name-wrap .name { padding-right: 40px; }
 }
 @media (max-height: 520px) and (orientation: landscape) {
     main { flex-direction: row; }
@@ -314,7 +361,7 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
                 <button class="tab" role="tab" data-tab="settings" aria-selected="false">設定</button>
             </div>
             <div class="tab-body" id="tab-items">
-                <div class="item-head"><span></span><span>色</span><span>項目</span><span>出やすさ</span><span>当たり</span><span></span></div>
+                <div class="item-head" aria-hidden="true"><span></span><span>色</span><span>項目</span><span>出やすさ</span><span>当たり</span><span></span></div>
                 <ul class="items" id="items"></ul>
                 <form class="add-row" id="addForm">
                     <textarea id="addName" rows="1" placeholder="項目を追加" autocomplete="off" aria-label="追加する項目"></textarea>
@@ -324,7 +371,16 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
                     <button class="btn sub" id="undoDelete" type="button" hidden></button>
                     <button class="btn sub" id="resetExcluded" type="button" hidden>除外をリセット</button>
                 </div>
-                <p class="hint">★ を付けた項目は「当たり」。出ると虹色に光ります。出やすさは数字が大きいほど出やすく、マスも大きくなります。左端の ⋮⋮ をドラッグすると並べ替えられます。改行や「、」で区切って貼り付けると、まとめて追加できます。</p>
+                <details class="help">
+                    <summary>使い方</summary>
+                    <ul>
+                        <li><b>色</b><span>押すと色を選べます</span></li>
+                        <li><b>出やすさ</b><span>数字が大きいほど出やすい</span></li>
+                        <li><b>★ 当たり</b><span>出ると虹色に光ります</span></li>
+                        <li><b>⋮⋮</b><span>ドラッグで並べ替え</span></li>
+                        <li><b>まとめて追加</b><span>改行や「、」で区切って入力</span></li>
+                    </ul>
+                </details>
             </div>
             <div class="tab-body" id="tab-history" hidden>
                 <div class="history-tools">
@@ -332,7 +388,14 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
                     <button class="btn sub" id="clearHistory" type="button">履歴を消す</button>
                 </div>
                 <ul class="history" id="history"></ul>
-                <p class="hint">履歴を消しても、通し番号（#0001 など）は続きから数えます。「通算」はすべてのリストを合わせた回数で、リストを消して作り直しても戻りません。「検証」を押すと、記録したシード値と候補から結果を計算し直して、記録と同じになるか確かめます。</p>
+                <details class="help">
+                    <summary>使い方</summary>
+                    <ul>
+                        <li><b>#0001</b><span>このリストで何回目か（履歴を消しても続きから）</span></li>
+                        <li><b>通算</b><span>全リストを合わせた回数</span></li>
+                        <li><b>検証</b><span>記録どおりの結果になるか計算し直す</span></li>
+                    </ul>
+                </details>
             </div>
             <div class="tab-body" id="tab-settings" hidden>
                 <div class="field">
@@ -357,6 +420,29 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
     </main>
 </div>
 <canvas id="confetti" hidden></canvas>
+<dialog class="dialog color-dialog" id="colorDialog" aria-labelledby="cdTitle">
+    <div class="cd-head">
+        <span class="cd-preview" id="cdPreview"></span>
+        <b id="cdTitle"></b>
+        <button class="cd-close" id="cdClose" type="button" aria-label="閉じる">✕</button>
+    </div>
+    <div class="cd-sec" id="cdRecentSec">
+        <div class="cd-label">最近使った色</div>
+        <div class="cd-swatches" id="cdRecent"></div>
+    </div>
+    <div class="cd-sec" id="cdSameSec">
+        <div class="cd-label">ほかの項目と同じ色にする</div>
+        <div class="cd-chips" id="cdSame"></div>
+    </div>
+    <div class="cd-sec">
+        <div class="cd-label">テーマの色</div>
+        <div class="cd-swatches" id="cdTheme"></div>
+    </div>
+    <div class="cd-actions">
+        <button class="btn sub" id="cdAuto" type="button">自動に戻す</button>
+        <label class="btn sub cd-custom">ほかの色を選ぶ…<input type="color" id="cdCustom" aria-label="ほかの色を選ぶ"></label>
+    </div>
+</dialog>
 <dialog class="dialog" id="dialog">
     <form method="dialog" id="dialogForm">
         <p id="dialogMsg"></p>
@@ -383,6 +469,7 @@ const SPEEDS = {               // 回転にかける時間
 };
 const GLOW_MS = 3000;          // 当たりのマスが色を変え続ける時間（その後は虹色で止める）
 const MAX_UNDO = 20;           // 削除を元に戻せる数（リストごと）
+const MAX_RECENT_COLORS = 8;   // 「最近使った色」に残す数
 const SEED_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字（I, O, 0, 1）を除く
 
 const THEMES = {
@@ -423,6 +510,7 @@ function makeDefaultState() {
         saveVersion: SAVE_VERSION, theme: 'vivid', speed: 'normal', currentListId: lunch.id, lists: [lunch],
         totalSpins: 0,   // すべてのリストを合わせた通し番号（リストを消しても戻らない）
         snapshots: {},   // 検証用: 抽選したときの候補（名前と出やすさ）。履歴から key で参照する
+        recentColors: [], // 最近使った色（新しい順）
     };
 }
 
@@ -462,6 +550,9 @@ function parseSaved(raw) {
         // 通算の番号がない古いデータは、各リストの回数の合計から始める
         totalSpins: Math.max(Number.isFinite(p.totalSpins) && p.totalSpins >= 0 ? Math.floor(p.totalSpins) : lists.reduce((a, l) => a + l.spinCount, 0), maxG),
         snapshots,
+        recentColors: (Array.isArray(p.recentColors) ? p.recentColors : [])
+            .filter(c => /^#[0-9a-f]{6}$/i.test(c)).map(c => c.toLowerCase())
+            .filter((c, i, a) => a.indexOf(c) === i).slice(0, MAX_RECENT_COLORS),
     };
 }
 // 履歴から参照されなくなった候補の記録を消す
@@ -931,18 +1022,16 @@ function createItemRow(id) {
     r.handle.className = 'handle'; r.handle.textContent = '⋮⋮'; r.handle.title = 'ドラッグで並べ替え';
     r.handle.addEventListener('pointerdown', (e) => startDrag(e, r.li, r.handle));
 
-    r.sw = document.createElement('label');
-    r.sw.className = 'swatch';
-    r.ci = document.createElement('input');
-    r.ci.type = 'color';
-    r.ci.addEventListener('input', () => { const it = findItem(id); if (!it) return; it.color = r.ci.value; r.sw.style.background = r.ci.value; drawWheel(); });
-    r.ci.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.color = r.ci.value; saveState(); renderItems(); });
+    r.sw = document.createElement('button');
+    r.sw.type = 'button'; r.sw.className = 'swatch';
+    r.sw.addEventListener('click', () => openColorDialog(id));
     r.mark = document.createElement('span'); r.mark.className = 'auto-mark'; r.mark.textContent = 'A';
-    r.sw.append(r.ci, r.mark);
+    r.sw.append(r.mark);
 
     const nameWrap = document.createElement('div');
+    nameWrap.className = 'name-wrap';
     r.name = document.createElement('input');
-    r.name.type = 'text'; r.name.className = 'name'; r.name.maxLength = 40;
+    r.name.type = 'text'; r.name.className = 'name'; r.name.maxLength = 40; r.name.setAttribute('aria-label', '項目の名前');
     r.name.addEventListener('input', () => { const it = findItem(id); if (!it) return; it.name = r.name.value; drawWheel(); renderStage(); });
     r.name.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.name = r.name.value.trim(); r.name.value = it.name; saveState(); renderAll(); });
     r.pct = document.createElement('span'); r.pct.className = 'pct';
@@ -950,7 +1039,7 @@ function createItemRow(id) {
 
     r.w = document.createElement('input');
     r.w.type = 'number'; r.w.min = 1; r.w.max = MAX_WEIGHT; r.w.step = 1; r.w.inputMode = 'numeric';
-    r.w.title = '出やすさ（1〜' + MAX_WEIGHT + '）';
+    r.w.title = '出やすさ（1〜' + MAX_WEIGHT + '）'; r.w.setAttribute('aria-label', '出やすさ');
     r.w.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.weight = clampWeight(r.w.value); r.w.value = it.weight; saveState(); renderAll(); });
 
     r.star = document.createElement('button');
@@ -998,15 +1087,15 @@ function renderItems() {
         r.li.className = 'item' + (excluded ? ' excluded' : '');
         const color = itemColor(list, item);
         r.sw.style.background = color;
-        r.sw.title = item.color ? '色を変える（設定タブで自動に戻せます）' : '色を変える（今はテーマの自動配色）';
-        setIfIdle(r.ci, color);
+        r.sw.title = item.color ? '色を変える' : '色を変える（今はテーマの自動配色）';
+        r.sw.setAttribute('aria-label', `「${item.name || '名前なし'}」の色`);
         r.mark.hidden = !!item.color;
         setIfIdle(r.name, item.name);
         r.pct.textContent = excluded ? '除外中' : (item.name.trim() && total ? (100 * item.weight / total).toFixed(1) + '%' : '');
         setIfIdle(r.w, item.weight);
         r.star.setAttribute('aria-pressed', item.win ? 'true' : 'false');
         r.star.title = item.win ? '当たり（押すと外す）' : '当たりにする';
-        [r.ci, r.name, r.w, r.star, r.del].forEach(el => { el.disabled = spinning; });
+        [r.sw, r.name, r.w, r.star, r.del].forEach(el => { el.disabled = spinning; });
         if (ul.children[idx] !== r.li) ul.insertBefore(r.li, ul.children[idx] || null);
     });
     for (const [id, r] of itemRows) {
@@ -1195,6 +1284,88 @@ $('dialogForm').addEventListener('submit', (e) => { e.preventDefault(); if (dial
 $('dialogCancel').addEventListener('click', () => { if (dialogDone) dialogDone(false); });
 $('dialog').addEventListener('close', () => { if (dialogDone) dialogDone(false); });   // Esc キーで閉じたとき
 
+// ===== 色選びパネル =====
+let colorItemId = null;   // 色を選んでいる項目の id
+function addRecentColor(c) {
+    c = c.toLowerCase();
+    state.recentColors = [c, ...state.recentColors.filter(x => x !== c)].slice(0, MAX_RECENT_COLORS);
+}
+function colorButton(hex, current, label) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.style.background = hex; b.dataset.color = hex;
+    b.title = label || hex; b.setAttribute('aria-label', label || hex);
+    b.setAttribute('aria-pressed', hex.toLowerCase() === current ? 'true' : 'false');
+    return b;
+}
+function fillColorDialog() {
+    const list = curList();
+    const item = findItem(colorItemId);
+    if (!item) { closeColorDialog(); return; }
+    const current = itemColor(list, item).toLowerCase();
+    const fixed = item.color ? current : '';   // 自動配色のときは、どれも選ばれていない表示にする
+    $('cdTitle').textContent = `「${item.name || '名前なし'}」の色`;
+    $('cdPreview').style.background = current;
+    $('cdCustom').value = current;
+    $('cdAuto').disabled = !item.color;
+
+    const recent = $('cdRecent'); recent.textContent = '';
+    state.recentColors.forEach(c => recent.append(colorButton(c, fixed)));
+    $('cdRecentSec').hidden = !state.recentColors.length;
+
+    const same = $('cdSame'); same.textContent = '';
+    list.items.filter(i => i !== item && i.name.trim()).forEach(i => {
+        const c = itemColor(list, i).toLowerCase();
+        const b = colorButton(c, '', `「${i.name}」と同じ色`);
+        b.style.background = '';
+        const dot = document.createElement('i'); dot.style.background = c;
+        const nm = document.createElement('span'); nm.textContent = i.name;
+        b.append(dot, nm);
+        same.append(b);
+    });
+    $('cdSameSec').hidden = !same.children.length;
+
+    const theme = $('cdTheme'); theme.textContent = '';
+    THEMES[state.theme].colors.forEach(c => theme.append(colorButton(c, fixed)));
+}
+function openColorDialog(id) {
+    if (isSpinning()) return;
+    colorItemId = id;
+    fillColorDialog();
+    const dlg = $('colorDialog');
+    if (dlg.showModal) { if (!dlg.open) dlg.showModal(); }
+    else $('cdCustom').click();   // <dialog> がない古いブラウザは端末の色選びだけ出す
+}
+function closeColorDialog() {
+    const dlg = $('colorDialog');
+    if (dlg.open) dlg.close();
+}
+// 色を決める（null なら自動に戻す）
+function applyColor(hex) {
+    const item = findItem(colorItemId);
+    if (!item || isSpinning()) { closeColorDialog(); return; }
+    item.color = hex ? hex.toLowerCase() : null;
+    if (hex) addRecentColor(hex);
+    saveState(); renderAll();
+    closeColorDialog();
+}
+['cdRecent', 'cdSame', 'cdTheme'].forEach(id => $(id).addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-color]');
+    if (b) applyColor(b.dataset.color);
+}));
+$('cdAuto').addEventListener('click', () => applyColor(null));
+$('cdClose').addEventListener('click', closeColorDialog);
+$('colorDialog').addEventListener('click', (e) => { if (e.target === $('colorDialog')) closeColorDialog(); });   // 外側を押したら閉じる
+$('colorDialog').addEventListener('close', () => { colorItemId = null; });
+// 端末の色選び: 動かしている間はルーレットに反映し、決めたら保存する
+$('cdCustom').addEventListener('input', (e) => {
+    const item = findItem(colorItemId);
+    if (!item || isSpinning()) return;
+    item.color = e.target.value;
+    $('cdPreview').style.background = e.target.value;
+    renderItems(); drawWheel();
+});
+$('cdCustom').addEventListener('change', (e) => applyColor(e.target.value));
+
 // ===== 並べ替え（左端の ⋮⋮ をドラッグ） =====
 function startDrag(e, li, handle) {
     if (isSpinning()) return;
@@ -1292,7 +1463,7 @@ $('undoDelete').addEventListener('click', () => {
 $('spinBtn').addEventListener('click', doSpin);
 window.addEventListener('keydown', (e) => {
     if (e.code !== 'Space' && e.code !== 'Enter') return;
-    if ($('dialog').open) return;
+    if ($('dialog').open || $('colorDialog').open) return;
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
     if (e.code === 'Enter' && t && t.tagName === 'BUTTON' && t !== $('spinBtn')) return;
