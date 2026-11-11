@@ -145,11 +145,10 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .hub {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: 24%; aspect-ratio: 1; border-radius: 50%; z-index: 2;
-    border: 5px solid var(--rim-a); color: var(--accent-text);
-    background: radial-gradient(circle at 35% 28%, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 55%), var(--accent);
+    border: 3px solid var(--panel); color: var(--accent-text);
+    background: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0)), var(--accent);
     font-weight: 700; font-size: clamp(.8rem, 3.6vw, 1.25rem); letter-spacing: .08em; white-space: nowrap; padding: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .2), inset 0 -4px 8px rgba(0, 0, 0, .25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
     transition: transform .12s, filter .12s;
 }
 .hub:hover:not(:disabled) { filter: brightness(1.1); }
@@ -611,7 +610,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '1.5.0';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '1.5.1';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -982,21 +981,6 @@ function drawWheel(now = performance.now()) {
     gl.addColorStop(1, 'rgba(0,0,0,.30)');
     ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2);
     ctx.fillStyle = gl; ctx.fill();
-    // マスの境目の鋲
-    if (segs.length > 1 && segs.length <= 40) {
-        const pr = R * 0.94, r = Math.max(2, R * 0.024);
-        segs.forEach(seg => {
-            const a = toRad(seg.start);
-            const x = Math.cos(a) * pr, y = Math.sin(a) * pr;
-            const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
-            g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#bdb6d4');
-            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fillStyle = g;
-            ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = r; ctx.shadowOffsetY = r * 0.3;
-            ctx.fill();
-            ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        });
-    }
     ctx.restore();
 }
 
