@@ -8,6 +8,11 @@
 <meta name="theme-color" content="#1b1730">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LuckyRoulette">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LuckyRoulette">
 <meta property="og:title" content="LuckyRoulette">
@@ -1412,6 +1417,13 @@ renderAll();
 new ResizeObserver(resizeCanvas).observe(canvas);
 resizeCanvas();
 saveState();
+
+// ===== ホーム画面に追加（PWA） =====
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+}
 </script>
 </body>
 </html>
