@@ -53,6 +53,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
+/* スマホで左右に動かないようにする（はみ出しを切り取り、ダブルタップでの拡大を止める） */
+html, body { overflow-x: hidden; overflow-x: clip; touch-action: manipulation; }
 body {
     background: var(--bg);
     color: var(--text);
@@ -93,13 +95,13 @@ main { display: flex; gap: 16px; flex: 1; min-height: 0; }
 
 /* ルーレット */
 .stage {
-    flex: 1 1 55%; min-width: 0;
+    flex: 1 1 55%; min-width: 0; width: 100%;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
     padding: 8px 0;
 }
 .wheel-wrap {
     position: relative;
-    width: min(92vw, 62vh, 520px); width: min(92vw, 62dvh, 520px);
+    width: min(calc(100% - 20px), 62vh, 520px); width: min(calc(100% - 20px), 62dvh, 520px);
     aspect-ratio: 1;
     border-radius: 50%;
 }
@@ -170,6 +172,7 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .item, .item-head {
     display: grid; grid-template-columns: 20px 36px minmax(0, 1fr) 56px 36px 30px; gap: 6px; align-items: center;
 }
+.item { align-items: start; }
 .item { background: var(--panel); border-radius: 8px; }
 .item.dragging { position: relative; z-index: 5; box-shadow: var(--shadow); opacity: .95; }
 .handle {
@@ -195,7 +198,7 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .item input[type="number"] { text-align: center; padding: 7px 2px; -moz-appearance: textfield; appearance: textfield; }
 .item input[type="number"]::-webkit-inner-spin-button, .item input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .name-wrap { position: relative; min-width: 0; }
-.name-wrap .name { padding-right: 46px; text-overflow: ellipsis; }
+.name-wrap .name { text-overflow: ellipsis; }
 .star {
     height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2);
     font-size: 1.1rem; line-height: 1; color: var(--muted); padding: 0;
@@ -209,10 +212,11 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .item-head { font-size: .75rem; color: var(--muted); margin-bottom: 4px; white-space: nowrap; }
 .item-head span { text-align: center; }
 .item-head span:nth-child(3) { text-align: left; padding-left: 8px; }
-.pct {
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    font-size: .7rem; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums;
-}
+/* 確率: 名前の下に、項目の色のバーと % を出す */
+.odds { display: flex; align-items: center; gap: 6px; height: 16px; margin-top: 2px; padding: 0 2px; }
+.odds .bar { flex: 1; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.odds .bar i { display: block; height: 100%; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .5); }
+.odds .pct { font-size: .75rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.4em; text-align: right; }
 .add-row { display: flex; gap: 6px; margin-top: 10px; align-items: flex-start; }
 .add-row textarea { resize: none; overflow: hidden; line-height: 1.4; min-height: 36px; font: inherit; }
 .item-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -299,6 +303,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .seg-btns button { flex: 1; min-width: 90px; border: 2px solid var(--line); border-radius: 10px; padding: 8px; background: var(--panel-2); }
 .seg-btns button[aria-pressed="true"] { border-color: var(--accent); font-weight: 700; }
 .seg-btns small { display: block; color: var(--muted); font-size: .75rem; font-weight: 400; }
+.app-version { text-align: center; font-size: .7rem; color: var(--muted); opacity: .5; font-variant-numeric: tabular-nums; user-select: text; }
 #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 .history .what { font-weight: 600; overflow-wrap: anywhere; }
 .history .what.win { color: #e0457b; }
@@ -317,7 +322,6 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
     .list-bar select { flex: 1; max-width: none; }
     .item, .item-head { grid-template-columns: 16px 34px minmax(0, 1fr) 46px 34px 26px; gap: 4px; }
     .swatch { width: 34px; height: 34px; }
-    .name-wrap .name { padding-right: 40px; }
 }
 @media (max-height: 520px) and (orientation: landscape) {
     main { flex-direction: row; }
@@ -325,6 +329,8 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
     .wheel-wrap { width: min(44vw, 58vh); width: min(44vw, 58dvh); }
     .tab-body { overflow: auto; }
     #app { height: 100dvh; }
+    .stage { justify-content: safe center; }
+    .app-version { position: fixed; left: max(8px, env(safe-area-inset-left)); bottom: max(4px, env(safe-area-inset-bottom)); pointer-events: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .wheel-wrap.rainbow::before, .result.win { animation: none; }
@@ -418,6 +424,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
             </div>
         </aside>
     </main>
+    <footer class="app-version" id="appVersion"></footer>
 </div>
 <canvas id="confetti" hidden></canvas>
 <dialog class="dialog color-dialog" id="colorDialog" aria-labelledby="cdTitle">
@@ -457,6 +464,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 'use strict';
 
 // ===== 定数 =====
+const APP_VERSION = '1.3.0';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -1034,8 +1042,13 @@ function createItemRow(id) {
     r.name.type = 'text'; r.name.className = 'name'; r.name.maxLength = 40; r.name.setAttribute('aria-label', '項目の名前');
     r.name.addEventListener('input', () => { const it = findItem(id); if (!it) return; it.name = r.name.value; drawWheel(); renderStage(); });
     r.name.addEventListener('change', () => { const it = findItem(id); if (!it) return; it.name = r.name.value.trim(); r.name.value = it.name; saveState(); renderAll(); });
+    const odds = document.createElement('div'); odds.className = 'odds';
+    const bar = document.createElement('span'); bar.className = 'bar';
+    r.fill = document.createElement('i');
+    bar.append(r.fill);
     r.pct = document.createElement('span'); r.pct.className = 'pct';
-    nameWrap.append(r.name, r.pct);
+    odds.append(bar, r.pct);
+    nameWrap.append(r.name, odds);
 
     r.w = document.createElement('input');
     r.w.type = 'number'; r.w.min = 1; r.w.max = MAX_WEIGHT; r.w.step = 1; r.w.inputMode = 'numeric';
@@ -1091,7 +1104,10 @@ function renderItems() {
         r.sw.setAttribute('aria-label', `「${item.name || '名前なし'}」の色`);
         r.mark.hidden = !!item.color;
         setIfIdle(r.name, item.name);
-        r.pct.textContent = excluded ? '除外中' : (item.name.trim() && total ? (100 * item.weight / total).toFixed(1) + '%' : '');
+        const share = !excluded && item.name.trim() && total ? 100 * item.weight / total : 0;
+        r.pct.textContent = excluded ? '除外中' : (share ? share.toFixed(1) + '%' : '―');
+        r.fill.style.width = share.toFixed(2) + '%';
+        r.fill.style.background = color;
         setIfIdle(r.w, item.weight);
         r.star.setAttribute('aria-pressed', item.win ? 'true' : 'false');
         r.star.title = item.win ? '当たり（押すと外す）' : '当たりにする';
@@ -1581,6 +1597,7 @@ function selectTab(name) {
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => selectTab(t.dataset.tab)));
 
 // ===== 起動 =====
+$('appVersion').textContent = 'v' + APP_VERSION;
 buildSettings();
 loadState();
 showLastOf(curList());
