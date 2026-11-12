@@ -617,7 +617,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '1.6.1';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '1.6.2';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -1851,6 +1851,8 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     const installed = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
     if (installed) cacheFonts();
     window.addEventListener('appinstalled', cacheFonts);   // Android でこの画面からインストールしたとき
+    // 前の版からの更新直後は、まだ古いサービスワーカーが動いていて依頼を無視するので、新しいものに切り替わったらもう一度頼む
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (installed) cacheFonts(); });
 }
 </script>
 </body>
