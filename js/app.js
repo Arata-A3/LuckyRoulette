@@ -1,7 +1,7 @@
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '2.0.0';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '2.0.1';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -365,14 +365,10 @@ function drawWheel(now = performance.now()) {
         if (segs.length === 1) fontPx = R * 0.11;
         if (fontPx < W * 0.012) return;           // 細すぎるマスは文字を省く
         ctx.save();
-        // 左半分のマスは文字が逆さにならないよう、向きを反対にする。
-        // 回転中は止まる位置で判定する（今の角度で判定すると、真上・真下を通るたびに文字が裏返ってチラつく）
-        const restRot = spin ? spin.to : rotation;
-        const restMid = ((seg.start + seg.end) / 2 - 90 + restRot) * Math.PI / 180;
-        const flip = segs.length > 1 && Math.cos(restMid) < 0;
-        ctx.rotate(segs.length === 1 ? -Math.PI / 2 : (flip ? mid + Math.PI : mid));
+        // どのマスも同じ向き（中心から外へ読む向き）にそろえ、文字の終わりを外周側にそろえる
+        ctx.rotate(segs.length === 1 ? -Math.PI / 2 : mid);
         ctx.fillStyle = (highlight === item.id && winGlow) ? '#ffffff' : textColorFor(itemColor(list, item));
-        ctx.textAlign = flip ? 'left' : 'right';
+        ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.font = `700 ${fontPx}px ${WHEEL_FONT}`;
         if ('letterSpacing' in ctx) ctx.letterSpacing = `${(-fontPx * 0.07).toFixed(2)}px`;   // canvas では palt が効かないので少し詰める
@@ -381,7 +377,7 @@ function drawWheel(now = performance.now()) {
         if (label !== item.name) label = label.slice(0, -1) + '…';
         if (highlight === item.id && winGlow) { ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = fontPx / 3; }
         else if (ctx.fillStyle === '#ffffff') { ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = fontPx / 6; ctx.shadowOffsetY = fontPx / 20; }
-        ctx.fillText(label, flip ? -R * 0.88 : R * 0.88, 0);
+        ctx.fillText(label, R * 0.88, 0);
         ctx.restore();
     });
     // 光沢（左上が明るく、縁が少し暗い）
