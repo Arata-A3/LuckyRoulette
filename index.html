@@ -9,6 +9,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="lib/fonts/zen-maru-gothic.css">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="LuckyRoulette">
@@ -36,6 +37,8 @@
     --danger: #d23b4b;
     --shadow: 0 8px 28px rgba(40, 30, 80, .12), 0 1px 3px rgba(40, 30, 80, .06);
     --edge: rgba(30, 20, 70, .06);          /* パネルの縁の細い線 */
+    /* 丸ゴシック（同梱）。読み込み前や対応外の文字は端末の丸ゴシック・ゴシックで出す */
+    --font: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", sans-serif;
     --rim-a: #ffffff; --rim-b: #d4cee6;      /* ルーレットの外周（金属っぽい縁） */
     --glow-1: rgba(120, 90, 255, .14); --glow-2: rgba(47, 184, 255, .10);   /* 背景の光のにじみ */
 }
@@ -64,10 +67,12 @@ html, body { overflow-x: hidden; overflow-x: clip; touch-action: manipulation; }
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    font-family: var(--font);
+    font-weight: 500; line-height: 1.5;
     -webkit-tap-highlight-color: transparent;
     font-feature-settings: "palt";   /* 日本語の字間を詰めて読みやすくする */
     letter-spacing: .01em;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
 }
 /* 背景にごく薄い光のにじみ */
 body::before {
@@ -91,7 +96,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 /* ヘッダー */
 header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 header h1 {
-    margin: 0; font-size: 1.35rem; letter-spacing: .02em; white-space: nowrap;
+    margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: 0; white-space: nowrap;
     background: linear-gradient(90deg, #ff4d6d, #ffb000, #3ccf6e, #2f9bff, #9b5cff);
     -webkit-background-clip: text; background-clip: text; color: transparent;
 }
@@ -161,7 +166,7 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
     background: var(--panel); border: 1px solid var(--edge); box-shadow: var(--shadow);
     font-size: clamp(1.15rem, 4.5vw, 1.6rem); font-weight: 700; line-height: 1.3; overflow-wrap: anywhere;
 }
-.rcard .rlabel { display: block; font-size: .5em; font-weight: 600; color: var(--muted); letter-spacing: .12em; }
+.rcard .rlabel { display: block; font-size: .5em; font-weight: 700; color: var(--muted); letter-spacing: .12em; }
 .rcard.win {
     border: 2px solid transparent;
     background: linear-gradient(var(--panel), var(--panel)) padding-box, linear-gradient(90deg, #ff3b5c, #ff9f1a, #ffe14d, #3ccf6e, #2fb8ff, #8a5cff) border-box;
@@ -177,8 +182,8 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 @keyframes pop { from { transform: scale(.6); opacity: 0; } }
 @keyframes rainbowText { to { background-position: 200% 0; } }
 .seed {
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-    font-size: .8rem; color: var(--muted); opacity: .6; min-height: 1.2em; text-align: center;
+    font-variant-numeric: tabular-nums; letter-spacing: .06em;
+    font-size: .8rem; color: var(--muted); opacity: .7; min-height: 1.2em; text-align: center;
     user-select: text;
 }
 .notice { font-size: .9rem; color: var(--muted); text-align: center; }
@@ -196,7 +201,7 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 }
 .tab {
     position: relative; z-index: 1; flex: 1; padding: 8px 6px; border: 0; border-radius: 9px;
-    background: transparent; color: var(--muted); font-weight: 600; transition: color .2s;
+    background: transparent; color: var(--muted); font-weight: 700; transition: color .2s;
 }
 .tab[aria-selected="true"] { color: var(--text); }
 .tab-ind {
@@ -255,7 +260,7 @@ canvas#wheel { position: absolute; inset: 0; width: 100%; height: 100%; border-r
 .odds { display: flex; align-items: center; gap: 6px; height: 16px; margin-top: 2px; padding: 0 2px; }
 .odds .bar { flex: 1; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .odds .bar i { display: block; height: 100%; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .5); }
-.odds .pct { font-size: .75rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.4em; text-align: right; }
+.odds .pct { font-size: .75rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.4em; text-align: right; }
 .add-row { display: flex; gap: 6px; margin-top: 10px; align-items: flex-start; }
 .add-row textarea { resize: none; overflow: hidden; line-height: 1.4; min-height: 36px; font: inherit; }
 .item-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -272,7 +277,7 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
 .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; }
 .btn.danger-fill { background: var(--danger); color: #fff; }
 .btn {
-    border: 0; border-radius: 10px; padding: 9px 14px; background: var(--accent); color: var(--accent-text); font-weight: 600; white-space: nowrap;
+    border: 0; border-radius: 10px; padding: 9px 14px; background: var(--accent); color: var(--accent-text); font-weight: 700; white-space: nowrap;
 }
 .btn.sub { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
@@ -289,7 +294,7 @@ dialog.dialog::backdrop { background: rgba(10, 8, 20, .55); }
 .help summary:hover { background: var(--panel-2); }
 .help ul { margin: 6px 0 0; padding: 10px 12px; list-style: none; background: var(--panel-2); border-radius: 10px; display: grid; gap: 6px; line-height: 1.45; }
 .help li { display: grid; grid-template-columns: 6em 1fr; gap: 8px; }
-.help li b { color: var(--text); font-weight: 600; }
+.help li b { color: var(--text); font-weight: 700; }
 
 /* 色選びパネル */
 dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
@@ -317,7 +322,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .cd-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 
 .field { margin-bottom: 16px; }
-.field > label, .field > .label { display: block; font-weight: 600; margin-bottom: 6px; }
+.field > label, .field > .label { display: block; font-weight: 700; margin-bottom: 6px; }
 .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 .theme {
     border: 2px solid var(--line); border-radius: 10px; padding: 8px; background: var(--panel-2); text-align: left;
@@ -329,7 +334,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .switch input { width: 20px; height: 20px; accent-color: var(--accent); }
 
 .history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.hgroup { font-size: .75rem; font-weight: 600; color: var(--muted); margin: 10px 4px 0; letter-spacing: .03em; }
+.hgroup { font-size: .75rem; font-weight: 700; color: var(--muted); margin: 10px 4px 0; letter-spacing: .03em; }
 .hgroup:first-child { margin-top: 0; }
 .hrow {
     position: relative; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 0 10px; align-items: center;
@@ -341,14 +346,14 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 }
 .hdot { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .45); }
 .hmain { min-width: 0; }
-.hname { display: flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
+.hname { display: flex; align-items: center; gap: 6px; font-weight: 700; min-width: 0; }
 .hname > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hbadge {
     flex: none; font-size: .68rem; font-weight: 700; color: #fff; padding: 2px 7px; border-radius: 999px;
     background: linear-gradient(90deg, #ff3b5c, #ff9f1a, #3ccf6e, #2fb8ff, #a35cff);
 }
 .hmeta { margin-top: 2px; font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.hmeta .mono, .hno { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.hmeta .mono, .hno { font-variant-numeric: tabular-nums; letter-spacing: .06em; }
 .hno { font-size: .8rem; color: var(--muted); }
 .history .verify-btn { padding: 6px 10px; font-size: .78rem; }
 .history .verify { grid-column: 1 / -1; font-size: .8rem; line-height: 1.5; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--panel); }
@@ -366,7 +371,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .history-tools { display: flex; align-items: stretch; gap: 8px; margin-bottom: 14px; }
 .hstat { flex: 1; min-width: 0; background: var(--panel-2); border-radius: 12px; padding: 8px 12px; }
 .hstat b { display: block; font-size: 1.3rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.hstat small { color: var(--muted); font-size: .72rem; }
+.hstat small { display: block; color: var(--muted); font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #clearHistory { align-self: center; padding: 8px 10px; font-size: .8rem; color: var(--muted); }
 #clearHistory:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
 
@@ -381,7 +386,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .select-wrap { position: relative; min-width: 0; display: flex; }
 .list-bar select {
     -webkit-appearance: none; appearance: none; padding: 9px 34px 9px 14px; border-radius: 12px;
-    border: 1px solid var(--edge); background: var(--panel); font-weight: 600; box-shadow: var(--shadow); cursor: pointer;
+    border: 1px solid var(--edge); background: var(--panel); font-weight: 700; box-shadow: var(--shadow); cursor: pointer;
 }
 .select-wrap .chev { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
 .icon-btn {
@@ -407,7 +412,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .item { background: var(--panel-2); border-radius: 12px; padding: 6px 6px 4px 2px; }
 .item-head { padding: 0 6px 0 2px; }
 .item input[type="text"], .item input[type="number"] { border-color: transparent; background: transparent; transition: border-color .15s, background .15s; }
-.item input[type="number"] { background: var(--panel); font-weight: 600; }
+.item input[type="number"] { background: var(--panel); font-weight: 700; }
 .item input[type="text"]:hover { border-color: var(--line); }
 .item input:focus, .add-row textarea:focus { outline: none; border-color: var(--accent); background: var(--panel); }
 .handle { color: var(--muted); opacity: .7; }
@@ -450,7 +455,8 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
     .tab-body { overflow: visible; }
     /* タブを切り替えてもページの長さが急に縮まず、タブのバーが同じ位置に残るようにする */
     .tab-body { min-height: calc(100vh - 60px); min-height: calc(100dvh - 60px); }
-    header h1 { font-size: 1.15rem; }
+    header h1 { font-size: 1.05rem; }
+    header { gap: 8px; }
 }
 @media (max-width: 380px) {
     header h1 { display: none; }
@@ -536,8 +542,8 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
             </div>
             <div class="tab-body" id="tab-history" hidden>
                 <div class="history-tools">
-                    <div class="hstat"><b id="hsList">0</b><small>このリストの回数</small></div>
-                    <div class="hstat"><b id="hsTotal">0</b><small>通算（全リスト）</small></div>
+                    <div class="hstat"><b id="hsList">0</b><small>このリスト</small></div>
+                    <div class="hstat"><b id="hsTotal">0</b><small>全リスト通算</small></div>
                     <button class="btn sub" id="clearHistory" type="button">履歴を消す</button>
                 </div>
                 <ul class="history" id="history"></ul>
@@ -611,7 +617,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '1.5.2';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '1.6.0';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -893,8 +899,20 @@ function resizeCanvas() {
     drawWheel();
 }
 
+// ルーレットの文字は canvas に描くので、使う文字のフォントを読み込んでから描き直す
+const WHEEL_FONT = '"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", system-ui, sans-serif';
+let wheelFontText = '';
+function ensureWheelFont(list) {
+    if (!document.fonts || !document.fonts.load) return;
+    const text = list.items.map(i => i.name).join('');
+    if (text === wheelFontText) return;
+    wheelFontText = text;
+    document.fonts.load(`700 16px "Zen Maru Gothic"`, text || 'あ').then(() => { if (!spin) drawWheel(); }, () => { });
+}
+
 function drawWheel(now = performance.now()) {
     const list = curList();
+    ensureWheelFont(list);
     const segs = layout(wheelItems(list));
     const W = canvas.width, R = W / 2;
     ctx.clearRect(0, 0, W, W);
@@ -952,7 +970,7 @@ function drawWheel(now = performance.now()) {
         // 文字（中心から外向き）
         const span = seg.end - seg.start;
         const mid = (a0 + a1) / 2;
-        const maxLen = R * 0.62;
+        const maxLen = R * 0.7;
         let fontPx = Math.min(R * 0.11, (span / 360) * 2 * Math.PI * R * 0.62 * 0.8);
         if (segs.length === 1) fontPx = R * 0.11;
         if (fontPx < W * 0.012) return;           // 細すぎるマスは文字を省く
@@ -966,11 +984,13 @@ function drawWheel(now = performance.now()) {
         ctx.fillStyle = (highlight === item.id && winGlow) ? '#ffffff' : textColorFor(itemColor(list, item));
         ctx.textAlign = flip ? 'left' : 'right';
         ctx.textBaseline = 'middle';
-        ctx.font = `700 ${fontPx}px system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif`;
+        ctx.font = `700 ${fontPx}px ${WHEEL_FONT}`;
+        if ('letterSpacing' in ctx) ctx.letterSpacing = `${(-fontPx * 0.07).toFixed(2)}px`;   // canvas では palt が効かないので少し詰める
         let label = item.name;
         while (label.length > 1 && ctx.measureText(label).width > maxLen) label = label.slice(0, -1);
         if (label !== item.name) label = label.slice(0, -1) + '…';
         if (highlight === item.id && winGlow) { ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = fontPx / 3; }
+        else if (ctx.fillStyle === '#ffffff') { ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = fontPx / 6; ctx.shadowOffsetY = fontPx / 20; }
         ctx.fillText(label, flip ? -R * 0.88 : R * 0.88, 0);
         ctx.restore();
     });

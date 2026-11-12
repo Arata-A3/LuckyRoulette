@@ -54,11 +54,12 @@
 - スマホでは公開ページを開き、Android（Chrome）はメニューの「アプリをインストール」/「ホーム画面に追加」、iPhone（Safari）は共有ボタンの「ホーム画面に追加」でアプリとして入れられる。一度開けばオフラインでも使える
 
 ## バージョン
-- 画面の一番下に薄く `v1.5.2` のように表示する
+- 画面の一番下に薄く `v1.6.0` のように表示する
 - 機能を変えたら `index.html` の `APP_VERSION` を上げる
 
 ## ファイル
 - `index.html`: アプリ本体（HTML・CSS・JavaScript）
 - `icon.svg` / `apple-touch-icon.png` / `og-image.png`: アイコンとリンクプレビュー用の画像
 - `manifest.webmanifest` / `icon-192.png` / `icon-512.png` / `icon-maskable-512.png`: ホーム画面に追加（PWA）するための設定とアイコン
+- `lib/fonts/`: 丸ゴシックの Zen Maru Gothic（太さ 500 と 700）。Google Fonts から取得し、文字の範囲ごとに分かれていて、使う文字の分だけ読み込まれる。ライセンスは SIL Open Font License 1.1（`lib/fonts/zen-maru-gothic/OFL.txt`）
 - `sw.js`: オフラインでも開けるようにするサービスワーカー（通信できるときは常に最新を読み込む）
