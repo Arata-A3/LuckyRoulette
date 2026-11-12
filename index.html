@@ -617,7 +617,7 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '1.6.0';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '1.6.1';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -1845,6 +1845,12 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     });
+    // ホーム画面に追加したアプリとして開いているときだけ、フォントを全部保存しておく（オフラインでも丸ゴシックで出すため）。
+    // ブラウザで見ているだけの人には、使う文字の分しか読み込ませない
+    const cacheFonts = () => navigator.serviceWorker.ready.then(reg => { if (reg.active) reg.active.postMessage('cacheAllFonts'); }).catch(() => {});
+    const installed = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    if (installed) cacheFonts();
+    window.addEventListener('appinstalled', cacheFonts);   // Android でこの画面からインストールしたとき
 }
 </script>
 </body>
