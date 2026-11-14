@@ -1,7 +1,7 @@
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '2.1.0';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '2.1.1';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -1014,40 +1014,61 @@ function fillColorDialog() {
 // ----- 微調整（色合い・鮮やかさ・明るさのスライダー） -----
 let tuneStart;         // パネルを開いたときの item.color（null なら自動配色だった）
 let tuned = false;     // このパネルで微調整したか
-function hexToHsl(hex) {
-    const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-    const l = (max + min) / 2;
-    let h = 0, s = 0;
-    if (d) {
-        s = d / (1 - Math.abs(2 * l - 1));
-        h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-        h = (h * 60 + 360) % 360;
-    }
-    return { h: Math.round(h) % 360, s: Math.round(s * 100), l: Math.round(l * 100) };
-}
+const TUNE_KEYS = [['cdHue', 'h', 359], ['cdSat', 's', 100], ['cdLight', 'l', 100]];
+const tuneMemo = new Map();   // 微調整で作った色 → そのときの数値（開き直したときに同じ数値を出すため）
 function hslToHex({ h, s, l }) {
     s /= 100; l /= 100;
     const a = s * Math.min(l, 1 - l);
     const f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); };
     return '#' + f(0) + f(8) + f(4);
 }
+// hex → 色合い(0〜359)・鮮やかさ・明るさ(0〜100) の整数。
+// 整数に丸めると、戻したときに別の色になることがあるので、近くの整数から「戻すと同じ色になる」ものを選ぶ
+function hexToHsl(hex) {
+    hex = hex.toLowerCase();
+    if (tuneMemo.has(hex)) return { ...tuneMemo.get(hex) };
+    const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const l = (max + min) / 2 * 100;
+    let h = 0, s = 0;
+    if (d) {
+        s = d / (1 - Math.abs(2 * l / 100 - 1)) * 100;
+        h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        h = (h * 60 + 360) % 360;
+    }
+    const find = (hr, sr, lr) => {
+        let best = null, bestDist = Infinity;
+        for (let dh = -hr; dh <= hr; dh++) for (let ds = -sr; ds <= sr; ds++) for (let dl = -lr; dl <= lr; dl++) {
+            const c = { h: (Math.round(h) + dh + 360) % 360, s: Math.round(s) + ds, l: Math.round(l) + dl };
+            if (c.s < 0 || c.s > 100 || c.l < 0 || c.l > 100 || hslToHex(c) !== hex) continue;
+            const dist = Math.abs(((c.h - h + 540) % 360) - 180) + Math.abs(c.s - s) + Math.abs(c.l - l);
+            if (dist < bestDist) { best = c; bestDist = dist; }
+        }
+        return best;
+    };
+    // ほぼ黒・ほぼ白では鮮やかさが大きくずれるので、見つからなければ広げて探す
+    return find(2, 2, 2) || find(3, 100, 2) || { h: Math.round(h) % 360, s: Math.round(s), l: Math.round(l) };
+}
 function readTune() { return { h: +$('cdHue').value, s: +$('cdSat').value, l: +$('cdLight').value }; }
-// スライダーの位置・数字・帯の色を合わせる
+// スライダーの位置・数値欄・帯の色を合わせる（入力中の数値欄は書き換えない）
 function setTune(hsl) {
-    if (hsl) { $('cdHue').value = hsl.h; $('cdSat').value = hsl.s; $('cdLight').value = hsl.l; }
-    const { h, s, l } = readTune();
-    $('cdHueVal').textContent = h + '°'; $('cdSatVal').textContent = s + '%'; $('cdLightVal').textContent = l + '%';
-    const hues = [0, 60, 120, 180, 240, 300, 360].map(x => `hsl(${x}, ${s}%, ${l}%)`).join(', ');
-    $('cdHue').style.setProperty('--track', `linear-gradient(to right, ${hues})`);
-    $('cdSat').style.setProperty('--track', `linear-gradient(to right, hsl(${h}, 0%, ${l}%), hsl(${h}, 100%, ${l}%))`);
-    $('cdLight').style.setProperty('--track', `linear-gradient(to right, #000, hsl(${h}, ${s}%, 50%), #fff)`);
+    if (hsl) TUNE_KEYS.forEach(([id, k]) => { $(id).value = hsl[k]; });
+    const v = readTune(), { h, s, l } = v;
+    TUNE_KEYS.forEach(([id, k]) => { const n = $(id + 'Num'); if (document.activeElement !== n) n.value = v[k]; });
+    // 帯は「値 0 の色」から「最大値の色」までをそのまま描く（つまみの中心の位置の色 = その値の色）
+    const hues = [0, 60, 120, 180, 240, 300, 359].map(x => `hsl(${x}, ${s}%, ${l}%) ${(x / 359 * 100).toFixed(2)}%`).join(', ');
+    $('cdHueTrack').style.setProperty('--track', `linear-gradient(to right, ${hues})`);
+    $('cdSatTrack').style.setProperty('--track', `linear-gradient(to right, hsl(${h}, 0%, ${l}%), hsl(${h}, 100%, ${l}%))`);
+    $('cdLightTrack').style.setProperty('--track', `linear-gradient(to right, hsl(${h}, ${s}%, 0%), hsl(${h}, ${s}%, 50%), hsl(${h}, ${s}%, 100%))`);
+    document.querySelector('.cd-tune').style.setProperty('--cur', hslToHex(v));
 }
 function onTune() {
     const item = findItem(colorItemId);
     if (!item || isSpinning()) return;
     // hex から読み直さず、スライダーの値から作る（灰色のとき色合いが飛ばないように）
-    const hex = hslToHex(readTune());
+    const v = readTune();
+    const hex = hslToHex(v);
+    tuneMemo.set(hex, v);
     item.color = hex;
     tuned = true;
     setTune();
@@ -1057,9 +1078,26 @@ function onTune() {
     $('cdTuneUndo').disabled = false;
     renderItems(); drawWheel();
 }
-['cdHue', 'cdSat', 'cdLight'].forEach(id => {
-    $(id).addEventListener('input', onTune);
-    $(id).addEventListener('change', () => { if (tuned) saveState(); });
+TUNE_KEYS.forEach(([id, , max]) => {
+    const range = $(id), num = $(id + 'Num');
+    range.addEventListener('input', onTune);
+    range.addEventListener('change', () => { if (tuned) saveState(); });
+    // 数値欄: 打っている間も範囲内ならすぐ反映し、確定したら範囲内に直して保存する
+    num.addEventListener('input', () => {
+        const n = Number(num.value);
+        if (num.value.trim() === '' || !Number.isFinite(n)) return;
+        range.value = Math.max(0, Math.min(max, Math.round(n)));
+        onTune();
+    });
+    num.addEventListener('change', () => {
+        const n = Number(num.value);
+        if (num.value.trim() !== '' && Number.isFinite(n)) range.value = Math.max(0, Math.min(max, Math.round(n)));
+        num.value = range.value;
+        onTune();
+        if (tuned) saveState();
+    });
+    num.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); num.blur(); } });
+    num.addEventListener('focus', () => num.select());
 });
 $('cdTuneUndo').addEventListener('click', () => {
     const item = findItem(colorItemId);

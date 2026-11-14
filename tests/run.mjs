@@ -210,6 +210,39 @@ test('色選び: 微調整（色合い・鮮やかさ・明るさ）と開いた
     `);
 });
 
+test('色選び: 微調整の数値入力・数値がずれない・つまみが帯の端まで届く', async () => {
+    await open({ width: 360 });
+    await run(`
+        const a = curList().items[0];
+        itemRows.get(a.id).sw.click();
+        const n = $('cdLightNum'); n.focus(); n.value = '42'; n.dispatchEvent(new Event('input'));
+        eq($('cdLight').value, '42', '数値を打つとスライダーが動く');
+        eq(hexToHsl(a.color).l, 42, '色に反映される');
+        n.value = '150'; n.dispatchEvent(new Event('change')); eq(n.value, '100', '範囲の外は直す');
+        n.value = '-5'; n.dispatchEvent(new Event('change')); eq(n.value, '0', '0 より小さいと 0');
+        n.value = 'abc'; n.dispatchEvent(new Event('change')); eq(n.value, '0', '数字でなければ元のまま');
+        $('cdHueNum').value = '200'; $('cdHueNum').dispatchEvent(new Event('change'));
+        $('cdSatNum').value = '37'; $('cdSatNum').dispatchEvent(new Event('change'));
+        $('cdLightNum').value = '61'; $('cdLightNum').dispatchEvent(new Event('change'));
+        $('cdClose').click(); await sleep(50);
+        itemRows.get(a.id).sw.click();
+        eq([$('cdHueNum').value, $('cdSatNum').value, $('cdLightNum').value], ['200', '37', '61'], '開き直しても打った数値のまま');
+        tuneMemo.clear();
+        let bad = 0;
+        for (let i = 0; i < 3000; i++) {
+            const c = hslToHex({ h: Math.floor(Math.random() * 360), s: Math.floor(Math.random() * 101), l: Math.floor(Math.random() * 101) });
+            if (hslToHex(hexToHsl(c)) !== c) bad++;
+        }
+        eq(bad, 0, '数値で作った色は、再読み込み後に読み直しても同じ色の数値になる');
+        for (const id of ['cdHue', 'cdSat', 'cdLight']) {
+            const t = $(id + 'Track').getBoundingClientRect(), r = $(id).getBoundingClientRect();
+            ok(Math.abs((t.left - r.left) - 11) < 1 && Math.abs((r.right - t.right) - 11) < 1, id + ': つまみの中心が帯の端まで届く');
+            ok(r.right <= $('colorDialog').getBoundingClientRect().right, id + ': パネルからはみ出さない');
+        }
+        $('cdClose').click();
+    `);
+});
+
 test('回す: 履歴・結果カード・検証', async () => {
     await open();
     await run(`

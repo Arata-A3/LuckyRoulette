@@ -205,9 +205,9 @@ try { const a = JSON.parse(localStorage.getItem('luckyroulette_save') || '{}').a
     <div class="cd-sec">
         <div class="cd-label cd-tune-head">いまの色を微調整<button class="cd-tune-undo" id="cdTuneUndo" type="button" disabled>開いたときの色に戻す</button></div>
         <div class="cd-tune">
-            <label for="cdHue">色合い</label><input type="range" id="cdHue" min="0" max="359" step="1"><output id="cdHueVal"></output>
-            <label for="cdSat">鮮やかさ</label><input type="range" id="cdSat" min="0" max="100" step="1"><output id="cdSatVal"></output>
-            <label for="cdLight">明るさ</label><input type="range" id="cdLight" min="0" max="100" step="1"><output id="cdLightVal"></output>
+            <label for="cdHue">色合い</label><div class="cd-slider" id="cdHueTrack"><input type="range" id="cdHue" min="0" max="359" step="1"></div><input type="number" class="cd-num" id="cdHueNum" min="0" max="359" step="1" inputmode="numeric" aria-label="色合い（数値）"><span class="cd-unit">°</span>
+            <label for="cdSat">鮮やかさ</label><div class="cd-slider" id="cdSatTrack"><input type="range" id="cdSat" min="0" max="100" step="1"></div><input type="number" class="cd-num" id="cdSatNum" min="0" max="100" step="1" inputmode="numeric" aria-label="鮮やかさ（数値）"><span class="cd-unit">%</span>
+            <label for="cdLight">明るさ</label><div class="cd-slider" id="cdLightTrack"><input type="range" id="cdLight" min="0" max="100" step="1"></div><input type="number" class="cd-num" id="cdLightNum" min="0" max="100" step="1" inputmode="numeric" aria-label="明るさ（数値）"><span class="cd-unit">%</span>
         </div>
     </div>
     <div class="cd-actions">

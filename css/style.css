@@ -312,21 +312,33 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .cd-tune-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cd-tune-undo { border: 0; background: transparent; color: var(--accent); font-size: .8rem; padding: 2px 4px; border-radius: 6px; }
 .cd-tune-undo:disabled { color: var(--muted); opacity: .5; }
-.cd-tune { display: grid; grid-template-columns: auto minmax(0, 1fr) 3.2em; align-items: center; gap: 6px 10px; font-size: .85rem; }
-.cd-tune output { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-.cd-tune input[type="range"] {
-    -webkit-appearance: none; appearance: none; width: 100%; height: 14px; margin: 8px 0; border-radius: 999px;
-    border: 1px solid rgba(128, 128, 128, .35); background: var(--track, var(--panel-2)); cursor: pointer;
+.cd-tune { display: grid; grid-template-columns: auto minmax(0, 1fr) 3.6em 1em; align-items: center; gap: 10px 8px; font-size: .85rem; }
+.cd-unit { color: var(--muted); height: 32px; line-height: 32px; text-align: left; }
+/* 帯はつまみの半径ぶん内側に描き、つまみの中心が帯の両端まで届くようにする（値 0 / 最大で、つまみの中心が帯の端の色に乗る） */
+.cd-slider { --thumb: 22px; position: relative; height: 14px; margin: 0 calc(var(--thumb) / 2); border-radius: 999px; background: var(--track, var(--panel-2)); box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .35); }
+.cd-slider input[type="range"] {
+    -webkit-appearance: none; appearance: none; position: absolute; top: 50%; left: calc(var(--thumb) / -2);
+    width: calc(100% + var(--thumb)); height: 32px; margin: 0; padding: 0; transform: translateY(-50%);
+    background: transparent; border: 0; cursor: pointer; touch-action: pan-y;
 }
-.cd-tune input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%;
-    background: #fff; border: 2px solid rgba(0, 0, 0, .45); box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+.cd-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 100%; }
+.cd-slider input[type="range"]::-moz-range-track { background: transparent; }
+.cd-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc((32px - var(--thumb)) / 2); border-radius: 50%;
+    background: var(--cur, #fff); border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 1px 4px rgba(0, 0, 0, .4); box-sizing: border-box;
 }
-.cd-tune input[type="range"]::-moz-range-thumb {
-    width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid rgba(0, 0, 0, .45); box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+.cd-slider input[type="range"]::-moz-range-thumb {
+    width: var(--thumb); height: var(--thumb); border-radius: 50%; box-sizing: border-box;
+    background: var(--cur, #fff); border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 1px 4px rgba(0, 0, 0, .4);
 }
-.cd-tune input[type="range"]::-moz-range-track { background: transparent; }
-.cd-tune input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cd-slider input[type="range"]:focus-visible { outline: none; }
+.cd-slider:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 6px; }
+.cd-tune .cd-num {
+    width: 100%; min-width: 0; height: 32px; margin: 0; padding: 0 6px; text-align: right; font: inherit; font-variant-numeric: tabular-nums;
+    color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; -moz-appearance: textfield;
+}
+.cd-num::-webkit-inner-spin-button, .cd-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.cd-num:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cd-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cd-actions .btn { flex: 1; min-height: 40px; }
 .cd-custom { position: relative; overflow: hidden; text-align: center; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
