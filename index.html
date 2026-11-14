@@ -202,6 +202,14 @@ try { const a = JSON.parse(localStorage.getItem('luckyroulette_save') || '{}').a
         <div class="cd-label">テーマの色</div>
         <div class="cd-swatches" id="cdTheme"></div>
     </div>
+    <div class="cd-sec">
+        <div class="cd-label cd-tune-head">いまの色を微調整<button class="cd-tune-undo" id="cdTuneUndo" type="button" disabled>開いたときの色に戻す</button></div>
+        <div class="cd-tune">
+            <label for="cdHue">色合い</label><input type="range" id="cdHue" min="0" max="359" step="1"><output id="cdHueVal"></output>
+            <label for="cdSat">鮮やかさ</label><input type="range" id="cdSat" min="0" max="100" step="1"><output id="cdSatVal"></output>
+            <label for="cdLight">明るさ</label><input type="range" id="cdLight" min="0" max="100" step="1"><output id="cdLightVal"></output>
+        </div>
+    </div>
     <div class="cd-actions">
         <button class="btn sub" id="cdAuto" type="button">自動に戻す</button>
         <label class="btn sub cd-custom">ほかの色を選ぶ…<input type="color" id="cdCustom" aria-label="ほかの色を選ぶ"></label>

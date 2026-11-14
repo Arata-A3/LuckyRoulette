@@ -180,6 +180,36 @@ test('色選び: テーマの色・同じ色・端末の色・最近使った色
     `);
 });
 
+test('色選び: 微調整（色合い・鮮やかさ・明るさ）と開いたときの色に戻す', async () => {
+    await open();
+    await run(`
+        eq(hslToHex({ h: 0, s: 100, l: 50 }), '#ff0000', 'HSL→hex');
+        eq(hexToHsl('#3ccf6e'), hexToHsl(hslToHex(hexToHsl('#3ccf6e'))), '往復しても変わらない');
+        const a = curList().items[0];
+        const auto = itemColor(curList(), a);
+        itemRows.get(a.id).sw.click();
+        eq(+$('cdHue').value, hexToHsl(auto).h, '今の色からスライダーが始まる');
+        ok($('cdTuneUndo').disabled, '最初は戻すボタンを押せない');
+        const L = $('cdLight'); L.value = '20'; L.dispatchEvent(new Event('input'));
+        ok(a.color && hexToHsl(a.color).l <= 21, '明るさを下げると暗くなる');
+        ok($('colorDialog').open, '動かしてもパネルは閉じない');
+        L.dispatchEvent(new Event('change'));
+        eq(parseSaved(localStorage.getItem(SAVE_KEY)).lists[0].items[0].color, a.color, '保存される');
+        $('cdTuneUndo').click(); eq(a.color, null, '開いたときの色（自動）に戻る');
+        const S = $('cdSat'); S.value = '0'; S.dispatchEvent(new Event('input')); S.dispatchEvent(new Event('change'));
+        const H = $('cdHue'); const h0 = H.value; H.value = String((+h0 + 90) % 360); H.dispatchEvent(new Event('input'));
+        eq(H.value, String((+h0 + 90) % 360), '灰色でも色合いの位置が飛ばない');
+        const tunedColor = a.color;
+        $('cdClose').click(); await sleep(50);
+        eq(state.recentColors[0], tunedColor, '閉じると最近使った色に入る');
+        eq(state.recentColors.length, 1, '動かしたぶん何色も入らない');
+        itemRows.get(a.id).sw.click(); eq($('cdTuneUndo').disabled, true, '開き直すと戻すボタンは押せない');
+        $('cdLight').value = '80'; $('cdLight').dispatchEvent(new Event('input'));
+        $('cdTuneUndo').click(); eq(a.color, tunedColor, '後から開いて微調整しても、そのときの色に戻せる');
+        $('cdClose').click();
+    `);
+});
+
 test('回す: 履歴・結果カード・検証', async () => {
     await open();
     await run(`

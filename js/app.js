@@ -1,7 +1,7 @@
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '2.0.1';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '2.1.0';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -1009,10 +1009,74 @@ function fillColorDialog() {
 
     const theme = $('cdTheme'); theme.textContent = '';
     THEMES[state.theme].colors.forEach(c => theme.append(colorButton(c, fixed)));
+    setTune(hexToHsl(current));
 }
+// ----- 微調整（色合い・鮮やかさ・明るさのスライダー） -----
+let tuneStart;         // パネルを開いたときの item.color（null なら自動配色だった）
+let tuned = false;     // このパネルで微調整したか
+function hexToHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const l = (max + min) / 2;
+    let h = 0, s = 0;
+    if (d) {
+        s = d / (1 - Math.abs(2 * l - 1));
+        h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        h = (h * 60 + 360) % 360;
+    }
+    return { h: Math.round(h) % 360, s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+function hslToHex({ h, s, l }) {
+    s /= 100; l /= 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); };
+    return '#' + f(0) + f(8) + f(4);
+}
+function readTune() { return { h: +$('cdHue').value, s: +$('cdSat').value, l: +$('cdLight').value }; }
+// スライダーの位置・数字・帯の色を合わせる
+function setTune(hsl) {
+    if (hsl) { $('cdHue').value = hsl.h; $('cdSat').value = hsl.s; $('cdLight').value = hsl.l; }
+    const { h, s, l } = readTune();
+    $('cdHueVal').textContent = h + '°'; $('cdSatVal').textContent = s + '%'; $('cdLightVal').textContent = l + '%';
+    const hues = [0, 60, 120, 180, 240, 300, 360].map(x => `hsl(${x}, ${s}%, ${l}%)`).join(', ');
+    $('cdHue').style.setProperty('--track', `linear-gradient(to right, ${hues})`);
+    $('cdSat').style.setProperty('--track', `linear-gradient(to right, hsl(${h}, 0%, ${l}%), hsl(${h}, 100%, ${l}%))`);
+    $('cdLight').style.setProperty('--track', `linear-gradient(to right, #000, hsl(${h}, ${s}%, 50%), #fff)`);
+}
+function onTune() {
+    const item = findItem(colorItemId);
+    if (!item || isSpinning()) return;
+    // hex から読み直さず、スライダーの値から作る（灰色のとき色合いが飛ばないように）
+    const hex = hslToHex(readTune());
+    item.color = hex;
+    tuned = true;
+    setTune();
+    $('cdPreview').style.background = hex;
+    $('cdCustom').value = hex;
+    $('cdAuto').disabled = false;
+    $('cdTuneUndo').disabled = false;
+    renderItems(); drawWheel();
+}
+['cdHue', 'cdSat', 'cdLight'].forEach(id => {
+    $(id).addEventListener('input', onTune);
+    $(id).addEventListener('change', () => { if (tuned) saveState(); });
+});
+$('cdTuneUndo').addEventListener('click', () => {
+    const item = findItem(colorItemId);
+    if (!item || isSpinning()) return;
+    item.color = tuneStart;
+    tuned = false;
+    saveState(); renderAll();
+    fillColorDialog();
+    $('cdTuneUndo').disabled = true;
+});
 function openColorDialog(id) {
     if (isSpinning()) return;
     colorItemId = id;
+    const item = findItem(id);
+    tuneStart = item ? item.color : null;
+    tuned = false;
+    $('cdTuneUndo').disabled = true;
     fillColorDialog();
     const dlg = $('colorDialog');
     if (dlg.showModal) { if (!dlg.open) dlg.showModal(); }
@@ -1027,6 +1091,7 @@ function applyColor(hex) {
     const item = findItem(colorItemId);
     if (!item || isSpinning()) { closeColorDialog(); return; }
     item.color = hex ? hex.toLowerCase() : null;
+    tuned = false;
     if (hex) addRecentColor(hex);
     saveState(); renderAll();
     closeColorDialog();
@@ -1038,7 +1103,13 @@ function applyColor(hex) {
 $('cdAuto').addEventListener('click', () => applyColor(null));
 $('cdClose').addEventListener('click', closeColorDialog);
 $('colorDialog').addEventListener('click', (e) => { if (e.target === $('colorDialog')) closeColorDialog(); });   // 外側を押したら閉じる
-$('colorDialog').addEventListener('close', () => { colorItemId = null; });
+$('colorDialog').addEventListener('close', () => {
+    // 微調整した色は、閉じたときに 1 回だけ「最近使った色」に入れる
+    const item = findItem(colorItemId);
+    if (tuned && item && item.color) { addRecentColor(item.color); saveState(); renderAll(); }
+    tuned = false;
+    colorItemId = null;
+});
 // 端末の色選び: 動かしている間はルーレットに反映し、決めたら保存する
 $('cdCustom').addEventListener('input', (e) => {
     const item = findItem(colorItemId);
