@@ -1,7 +1,7 @@
 // オフラインでも開けるようにするサービスワーカー。
 // ページ類: 通信できるときは常に最新を取りに行き（ネットワーク優先）、できないときだけキャッシュを使う。
 // フォント（lib/fonts/ の woff2）: 中身が変わらないので、キャッシュにあればそれを使う（キャッシュ優先）。
-const CACHE = 'luckyroulette-v5';
+const CACHE = 'luckyroulette-v6';
 const FONT_CACHE = 'luckyroulette-fonts-v1';   // フォントを入れ替えたら番号を上げる
 const FONT_CSS = 'lib/fonts/zen-maru-gothic.css';
 const FILES = ['./', 'index.html', 'css/style.css', 'js/app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', FONT_CSS];

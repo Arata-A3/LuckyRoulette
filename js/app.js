@@ -1,7 +1,7 @@
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '2.1.1';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '2.2.0';   // 画面の下に薄く出す。機能を変えたら上げる
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
@@ -1098,6 +1098,17 @@ TUNE_KEYS.forEach(([id, , max]) => {
     });
     num.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); num.blur(); } });
     num.addEventListener('focus', () => num.select());
+    // − / ＋（長押しで続けて変わる）。色合いは 0 と 359 の間でつながる
+    const step = (d) => (save) => {
+        if (isSpinning()) return;
+        const v = +range.value + d;
+        range.value = id === 'cdHue' ? (v + max + 1) % (max + 1) : Math.max(0, Math.min(max, v));
+        onTune();
+        if (save && tuned) saveState();
+    };
+    const names = { cdHue: '色合い', cdSat: '鮮やかさ', cdLight: '明るさ' };
+    num.before(stepButton('minus', names[id] + 'を 1 下げる', step(-1)));
+    $(id + 'Step').append(stepButton('plus', names[id] + 'を 1 上げる', step(1)));
 });
 $('cdTuneUndo').addEventListener('click', () => {
     const item = findItem(colorItemId);

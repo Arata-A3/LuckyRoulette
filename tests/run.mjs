@@ -243,6 +243,26 @@ test('色選び: 微調整の数値入力・数値がずれない・つまみが
     `);
 });
 
+test('色選び: 微調整の − / ＋（色合いは一周する・範囲で止まる・保存される）', async () => {
+    await open({ width: 360 });
+    await run(`
+        const a = curList().items[0];
+        itemRows.get(a.id).sw.click();
+        const [hm, hp] = $('cdHueStep').querySelectorAll('button');
+        const [lm, lp] = $('cdLightStep').querySelectorAll('button');
+        $('cdLightNum').value = '50'; $('cdLightNum').dispatchEvent(new Event('change'));
+        lp.click(); eq($('cdLight').value, '51', '＋ で 1 上がる'); eq($('cdLightNum').value, '51', '数値欄も変わる');
+        eq(hexToHsl(a.color).l, 51, '色に反映される');
+        eq(parseSaved(localStorage.getItem(SAVE_KEY)).lists[0].items[0].color, a.color, '保存される');
+        lm.click(); lm.click(); eq($('cdLight').value, '49', '− で 1 下がる');
+        $('cdLightNum').value = '100'; $('cdLightNum').dispatchEvent(new Event('change')); lp.click(); eq($('cdLight').value, '100', '最大で止まる');
+        $('cdHueNum').value = '359'; $('cdHueNum').dispatchEvent(new Event('change')); hp.click(); eq($('cdHue').value, '0', '色合いは 359 の次が 0');
+        hm.click(); eq($('cdHue').value, '359', '0 の前が 359');
+        ok($('colorDialog').open, 'パネルは閉じない');
+        $('cdClose').click();
+    `);
+});
+
 test('回す: 履歴・結果カード・検証', async () => {
     await open();
     await run(`

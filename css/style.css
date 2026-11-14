@@ -312,8 +312,15 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .cd-tune-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cd-tune-undo { border: 0; background: transparent; color: var(--accent); font-size: .8rem; padding: 2px 4px; border-radius: 6px; }
 .cd-tune-undo:disabled { color: var(--muted); opacity: .5; }
-.cd-tune { display: grid; grid-template-columns: auto minmax(0, 1fr) 3.6em 1em; align-items: center; gap: 10px 8px; font-size: .85rem; }
-.cd-unit { color: var(--muted); height: 32px; line-height: 32px; text-align: left; }
+.cd-tune { display: grid; gap: 12px; font-size: .85rem; }
+.cd-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 8px; }
+.cd-row > label { font-weight: 700; }
+.cd-row .cd-slider { grid-column: 1 / -1; margin-top: 4px; margin-bottom: 4px; }
+.cd-step { height: 38px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.cd-step button { width: 40px; color: var(--text); }
+.cd-step button:hover:not(:disabled) { background: var(--panel-2); }
+.cd-step .ic { width: 16px; height: 16px; }
+.cd-unit { color: var(--muted); width: 1.1em; text-align: left; flex: none; }
 /* 帯はつまみの半径ぶん内側に描き、つまみの中心が帯の両端まで届くようにする（値 0 / 最大で、つまみの中心が帯の端の色に乗る） */
 .cd-slider { --thumb: 22px; position: relative; height: 14px; margin: 0 calc(var(--thumb) / 2); border-radius: 999px; background: var(--track, var(--panel-2)); box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .35); }
 .cd-slider input[type="range"] {
@@ -334,11 +341,11 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .cd-slider input[type="range"]:focus-visible { outline: none; }
 .cd-slider:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 6px; }
 .cd-tune .cd-num {
-    width: 100%; min-width: 0; height: 32px; margin: 0; padding: 0 6px; text-align: right; font: inherit; font-variant-numeric: tabular-nums;
-    color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; -moz-appearance: textfield;
+    flex: none; width: 3.2em; height: 36px; margin: 0; padding: 0 2px; text-align: right; font: inherit; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--text); background: transparent; border: 0; border-radius: 0; -moz-appearance: textfield; appearance: textfield;
 }
 .cd-num::-webkit-inner-spin-button, .cd-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.cd-num:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cd-step:has(.cd-num:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cd-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cd-actions .btn { flex: 1; min-height: 40px; }
 .cd-custom { position: relative; overflow: hidden; text-align: center; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
