@@ -315,29 +315,30 @@ dialog.color-dialog { width: min(94vw, 400px); padding: 16px; }
 .cd-tune { display: grid; gap: 12px; font-size: .85rem; }
 .cd-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 8px; }
 .cd-row > label { font-weight: 700; }
-.cd-row .cd-slider { grid-column: 1 / -1; margin-top: 4px; margin-bottom: 4px; }
+.cd-row .cd-slider { grid-column: 1 / -1; margin-top: 8px; margin-bottom: 8px; }
 .cd-step { height: 38px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
 .cd-step button { width: 40px; color: var(--text); }
 .cd-step button:hover:not(:disabled) { background: var(--panel-2); }
 .cd-step .ic { width: 16px; height: 16px; }
 .cd-unit { color: var(--muted); width: 1.1em; text-align: left; flex: none; }
 /* 帯はつまみの半径ぶん内側に描き、つまみの中心が帯の両端まで届くようにする（値 0 / 最大で、つまみの中心が帯の端の色に乗る） */
-.cd-slider { --thumb: 22px; position: relative; height: 14px; margin: 0 calc(var(--thumb) / 2); border-radius: 999px; background: var(--track, var(--panel-2)); box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .35); }
+.cd-slider { --thumb: 22px; --hit: 40px; position: relative; height: 14px; margin: 0 calc(var(--thumb) / 2); border-radius: 999px; background: var(--track, var(--panel-2)); box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .35); }
 .cd-slider input[type="range"] {
     -webkit-appearance: none; appearance: none; position: absolute; top: 50%; left: calc(var(--thumb) / -2);
-    width: calc(100% + var(--thumb)); height: 32px; margin: 0; padding: 0; transform: translateY(-50%);
+    width: calc(100% + var(--thumb)); height: var(--hit); margin: 0; padding: 0; transform: translateY(-50%);
     background: transparent; border: 0; cursor: pointer; touch-action: pan-y;
 }
 .cd-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 100%; }
 .cd-slider input[type="range"]::-moz-range-track { background: transparent; }
 .cd-slider input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc((32px - var(--thumb)) / 2); border-radius: 50%;
+    -webkit-appearance: none; appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc((var(--hit) - var(--thumb)) / 2); border-radius: 50%;
     background: var(--cur, #fff); border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 1px 4px rgba(0, 0, 0, .4); box-sizing: border-box;
 }
 .cd-slider input[type="range"]::-moz-range-thumb {
     width: var(--thumb); height: var(--thumb); border-radius: 50%; box-sizing: border-box;
     background: var(--cur, #fff); border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 1px 4px rgba(0, 0, 0, .4);
 }
+@media (pointer: coarse) { .cd-slider { --thumb: 28px; --hit: 48px; } }
 .cd-slider input[type="range"]:focus-visible { outline: none; }
 .cd-slider:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 6px; }
 .cd-tune .cd-num {

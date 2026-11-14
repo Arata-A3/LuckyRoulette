@@ -1,7 +1,7 @@
 // オフラインでも開けるようにするサービスワーカー。
 // ページ類: 通信できるときは常に最新を取りに行き（ネットワーク優先）、できないときだけキャッシュを使う。
 // フォント（lib/fonts/ の woff2）: 中身が変わらないので、キャッシュにあればそれを使う（キャッシュ優先）。
-const CACHE = 'luckyroulette-v6';
+const CACHE = 'luckyroulette-v7';
 const FONT_CACHE = 'luckyroulette-fonts-v1';   // フォントを入れ替えたら番号を上げる
 const FONT_CSS = 'lib/fonts/zen-maru-gothic.css';
 const FILES = ['./', 'index.html', 'css/style.css', 'js/app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', FONT_CSS];
@@ -33,8 +33,11 @@ self.addEventListener('fetch', (e) => {
         );
         return;
     }
+    // ブラウザの保存分（GitHub Pages は最大 10 分）を使わず、毎回サーバーに確かめる。
+    // 保存分を使うと、新しい index.html と古い style.css が混ざって画面が崩れることがある
+    const fresh = req.mode === 'navigate' ? new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : new Request(req, { cache: 'no-cache' });
     e.respondWith(
-        fetch(req)
+        fetch(fresh)
             .then((res) => {
                 if (res.ok) {
                     const copy = res.clone();

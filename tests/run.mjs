@@ -263,6 +263,25 @@ test('色選び: 微調整の − / ＋（色合いは一周する・範囲で�
     `);
 });
 
+for (const w of [320, 375]) test(`色選び: スマホ幅 ${w}px でも 3 本のスライダーが同じ長さで十分長い`, async () => {
+    await open({ width: w });
+    await run(`
+        itemRows.get(curList().items[0].id).sw.click();
+        const ws = ['cdHue', 'cdSat', 'cdLight'].map(id => Math.round($(id + 'Track').getBoundingClientRect().width));
+        ok(ws.every(x => x === ws[0]), '同じ長さ: ' + ws.join(', '));
+        ok(ws[0] >= ${w} - 110, '十分長い: ' + ws[0] + 'px');
+        for (const id of ['cdHue', 'cdSat', 'cdLight']) ok($(id).getBoundingClientRect().height >= 40, id + ': 指で押せる高さ');
+        $('cdClose').click();
+    `);
+});
+test('index.html の ?v= がアプリの版とそろっている', async () => {
+    await open();
+    await run(`
+        const vs = [...document.querySelectorAll('link[rel=stylesheet][href^="css/"], script[src^="js/"]')].map(e => new URL(e.href || e.src).searchParams.get('v'));
+        eq(vs, [APP_VERSION, APP_VERSION], 'CSS と JS の ?v=');
+    `);
+});
+
 test('回す: 履歴・結果カード・検証', async () => {
     await open();
     await run(`

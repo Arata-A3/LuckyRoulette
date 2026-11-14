@@ -1,7 +1,7 @@
 'use strict';
 
 // ===== 定数 =====
-const APP_VERSION = '2.2.0';   // 画面の下に薄く出す。機能を変えたら上げる
+const APP_VERSION = '2.2.1';   // 画面の下に薄く出す。機能を変えたら上げる（index.html の ?v= もそろえる）
 const SAVE_KEY = 'luckyroulette_save';
 const SAVE_VERSION = 1;
 const MAX_ITEMS = 60;
